@@ -1,0 +1,52 @@
+<nav class="navbar navbar-expand-lg navbar-light bg-white mb-3" aria-label="Main navigation">
+  <div class="container">
+    <a class="navbar-brand" href="/">Secret Bay</a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
+        <li class="nav-item"><a class="nav-link" href="/products">Browse</a></li>
+        {% if current_user_is_admin %}
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('admin_index') }}">Admin</a></li>
+        {% endif %}
+      </ul>
+
+      <div class="d-flex align-items-center gap-2">
+        <form class="d-flex" action="{{ url_for('products') }}" method="get" style="min-width:220px;">
+          <input name="search" class="form-control form-control-sm me-2" type="search" placeholder="Search listings..." aria-label="Search" value="{{ request.args.get('search','') }}">
+          <button class="btn btn-sm btn-primary" type="submit">Search</button>
+        </form>
+
+        <a href="{{ url_for('cart_view') }}" class="btn btn-outline-secondary position-relative">
+          Cart <span id="cart-count" class="badge bg-primary ms-2">0</span>
+        </a>
+
+        {% if session.get('username') %}
+          <div class="text-end">
+            <div>Logged in as <strong>{{ session['username'] }}</strong></div>
+            <a href="{{ url_for('logout') }}" class="small">Log out</a>
+          </div>
+        {% else %}
+          <div>
+            <a href="{{ url_for('login') }}" class="btn btn-sm btn-outline-primary me-1">Login</a>
+            <a href="{{ url_for('register') }}" class="btn btn-sm btn-primary">Register</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</nav>
+
+<script>
+  // refresh cart badge on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    fetch('{{ url_for("cart_summary") }}').then(r => r.json()).then(d => {
+      const badge = document.getElementById('cart-count');
+      if (badge) badge.textContent = d.total_items || 0;
+    }).catch(()=>{});
+  });
+</script>
