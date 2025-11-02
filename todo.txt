@@ -11,4 +11,3 @@ seller page
 favicon 
 out of stock sign
 categories
-requirements

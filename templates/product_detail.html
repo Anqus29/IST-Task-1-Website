@@ -40,7 +40,9 @@
           <a href="{{ url_for('seller_profile', seller_id=product['seller_id']) }}" class="text-decoration-none">
             {{ product['business_name'] or 'Seller' }}
           </a>
-          {% if product['rating'] %}
+          {% if avg_rating %}
+            <span class="ms-2 text-warning">★ {{ '%.1f'|format(avg_rating) }} ({{ review_count }} review{% if review_count != 1 %}s{% endif %})</span>
+          {% elif product['rating'] %}
             <span class="ms-2 text-warning">★ {{ '%.1f'|format(product['rating']) }}</span>
           {% endif %}
         </div>
@@ -90,6 +92,73 @@
         <div class="mt-3">
           <small class="text-muted">Product ID: {{ product['id'] }}</small>
         </div>
+      </div>
+    </div>
+
+    <hr class="my-4">
+    <div class="row">
+      <div class="col-md-8">
+        <h4 class="mb-3">Customer Reviews</h4>
+
+        {% if reviews and reviews|length > 0 %}
+          <div class="list-group mb-4">
+            {% for r in reviews %}
+              <div class="list-group-item">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <strong>{{ r['username'] }}</strong>
+                    <span class="ms-2 text-warning">{{ '★' * r['rating'] }}{% if r['rating'] < 5 %}{{ '☆' * (5 - r['rating']) }}{% endif %}</span>
+                  </div>
+                  <small class="text-muted">{{ (r['created_at'] or '')[:10] }}</small>
+                </div>
+                {% if r['title'] %}
+                  <div class="mt-1"><em>{{ r['title'] }}</em></div>
+                {% endif %}
+                {% if r['body'] %}
+                  <p class="mb-0 mt-1">{{ r['body'] }}</p>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-muted">No reviews yet. Be the first to review this item.</p>
+        {% endif %}
+
+        {% if session.get('user_id') and can_review %}
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Write a review</h5>
+            <form action="{{ url_for('submit_review', product_id=product['id']) }}" method="post">
+              <div class="row g-2 align-items-center mb-2">
+                <div class="col-auto">
+                  <label for="rating" class="col-form-label">Rating</label>
+                </div>
+                <div class="col-auto">
+                  <select class="form-select" name="rating" id="rating" required>
+                    <option value="">Select…</option>
+                    <option value="5">★★★★★ (5)</option>
+                    <option value="4">★★★★☆ (4)</option>
+                    <option value="3">★★★☆☆ (3)</option>
+                    <option value="2">★★☆☆☆ (2)</option>
+                    <option value="1">★☆☆☆☆ (1)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="mb-2">
+                <input class="form-control" type="text" name="title" placeholder="Title (optional)">
+              </div>
+              <div class="mb-3">
+                <textarea class="form-control" name="body" rows="3" placeholder="Share your thoughts (required)" required></textarea>
+              </div>
+              <button class="btn btn-primary" type="submit">Submit review</button>
+            </form>
+          </div>
+        </div>
+        {% elif session.get('user_id') %}
+          <p class="text-muted">Only customers who purchased this item can leave a review.</p>
+        {% else %}
+          <p><a href="{{ url_for('login', next=request.path) }}">Log in</a> to write a review.</p>
+        {% endif %}
       </div>
     </div>
   </div>

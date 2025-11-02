@@ -17,6 +17,32 @@ def get_db_connection(path=DB_PATH):
     conn.execute("PRAGMA foreign_keys = ON;")
     return conn
 
+def ensure_reviews_table():
+    """Create reviews table if it does not exist (safe to call at startup)."""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS reviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5),
+            title TEXT,
+            body TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE CASCADE,
+            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+            UNIQUE(product_id, user_id)
+        )
+        """
+    )
+    conn.commit()
+    conn.close()
+
+# Ensure DB has reviews table
+ensure_reviews_table()
+
 def ensure_cart():
     if 'cart' not in session:
         session['cart'] = {}
@@ -188,11 +214,109 @@ def product_detail(product_id):
         WHERE p.id = ?
     """, (product_id,))
     product = cur.fetchone()
-    conn.close()
     if product is None:
+        conn.close()
         flash("Product not found.")
         return redirect(url_for('products'))
-    return render_template('product_detail.html', product=product)
+
+    # Fetch reviews and stats
+    cur.execute(
+        """
+        SELECT r.id, r.rating, r.title, r.body, r.created_at, u.username
+        FROM reviews r
+        JOIN users u ON r.user_id = u.id
+        WHERE r.product_id = ?
+        ORDER BY r.created_at DESC
+        """,
+        (product_id,)
+    )
+    reviews = cur.fetchall()
+
+    cur.execute("SELECT COUNT(*) AS c, AVG(rating) AS avg_rating FROM reviews WHERE product_id = ?", (product_id,))
+    stats = cur.fetchone()
+    
+    # Determine if current user purchased this product (to allow reviewing)
+    can_review = False
+    uid = session.get('user_id')
+    if uid:
+        cur.execute(
+            """
+            SELECT 1
+            FROM orders o
+            JOIN order_items oi ON oi.order_id = o.id
+            WHERE o.buyer_id = ? AND oi.product_id = ?
+            LIMIT 1
+            """,
+            (uid, product_id)
+        )
+        can_review = cur.fetchone() is not None
+    conn.close()
+    review_count = stats["c"] if stats else 0
+    avg_rating = float(stats["avg_rating"]) if stats and stats["avg_rating"] is not None else None
+
+    return render_template('product_detail.html', product=product, reviews=reviews, review_count=review_count, avg_rating=avg_rating, can_review=can_review)
+
+@app.route('/product/<int:product_id>/review', methods=['POST'])
+@login_required
+def submit_review(product_id):
+    rating_raw = request.form.get('rating')
+    title = (request.form.get('title') or '').strip()
+    body = (request.form.get('body') or '').strip()
+    try:
+        rating = int(rating_raw)
+        if rating < 1 or rating > 5:
+            raise ValueError()
+    except Exception:
+        flash('Please provide a valid rating between 1 and 5.')
+        return redirect(url_for('product_detail', product_id=product_id))
+
+    if not body:
+        flash('Please add a short review comment.')
+        return redirect(url_for('product_detail', product_id=product_id))
+
+    user_id = session.get('user_id')
+    conn = get_db_connection()
+    cur = conn.cursor()
+    # Ensure product exists
+    cur.execute("SELECT id FROM products WHERE id = ?", (product_id,))
+    if not cur.fetchone():
+        conn.close()
+        flash('Product not found.')
+        return redirect(url_for('products'))
+
+    # Ensure the user has purchased this product
+    cur.execute(
+        """
+        SELECT 1
+        FROM orders o
+        JOIN order_items oi ON oi.order_id = o.id
+        WHERE o.buyer_id = ? AND oi.product_id = ?
+        LIMIT 1
+        """,
+        (user_id, product_id)
+    )
+    if cur.fetchone() is None:
+        conn.close()
+        flash('Only customers who purchased this item can leave a review.')
+        return redirect(url_for('product_detail', product_id=product_id))
+
+    # Insert or update the user's review for this product
+    cur.execute(
+        """
+        INSERT INTO reviews (product_id, user_id, rating, title, body)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(product_id, user_id) DO UPDATE SET
+            rating=excluded.rating,
+            title=excluded.title,
+            body=excluded.body,
+            created_at=datetime('now')
+        """,
+        (product_id, user_id, rating, title or None, body)
+    )
+    conn.commit()
+    conn.close()
+    flash('Thanks for your review!')
+    return redirect(url_for('product_detail', product_id=product_id))
 
 @app.route('/cart')
 def cart_view():

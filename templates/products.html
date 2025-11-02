@@ -93,75 +93,92 @@
     {% include 'navbar.html' %}
 
     <div class="container">
-        <div class="row mb-3">
-            <div class="col-md-12">
-                <div class="d-flex gap-2 align-items-center">
-                    <select class="form-select" style="max-width: 200px;" id="categoryFilter">
-                        <option value="">All Categories</option>
-                        {% for cat in categories %}
-                            <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat }}</option>
-                        {% endfor %}
-                    </select>
-                    <select class="form-select" style="max-width: 200px;" id="sortFilter">
-                        <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest First</option>
-                        <option value="price_low" {% if sort == 'price_low' %}selected{% endif %}>Price: Low to High</option>
-                        <option value="price_high" {% if sort == 'price_high' %}selected{% endif %}>Price: High to Low</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-
         <div class="row">
-            {% if products %}
-                {% for p in products %}
-                    <div class="col-md-6 col-lg-4">
-                        <div class="listing-card">
-                            {% if p['stock'] is not none and p['stock'] == 0 %}
-                                <span class="out-of-stock-badge">Out of Stock</span>
-                            {% endif %}
-                            
-                            <!-- Product Image -->
-                            <div class="mb-2 text-center">
-                                {% if 'image_url' in p.keys() and p['image_url'] %}
-                                    {% set img = p['image_url'] %}
-                                    {% if img.startswith('http://') or img.startswith('https://') or img.startswith('/') %}
-                                        <img src="{{ img }}" alt="{{ p['title'] }}" style="max-height:160px; width:100%; object-fit:contain; background:#fff; border:1px solid #eee; padding:6px; border-radius:5px;">
-                                    {% else %}
-                                        <img src="{{ url_for('static', filename='img/' ~ img) }}" alt="{{ p['title'] }}" style="max-height:160px; width:100%; object-fit:contain; background:#fff; border:1px solid #eee; padding:6px; border-radius:5px;">
-                                    {% endif %}
-                                {% else %}
-                                    <img src="https://via.placeholder.com/300x200/e9ecef/6c757d?text={{ p['title'][:20] }}" alt="{{ p['title'] }}" style="max-height:160px; width:100%; object-fit:contain; border:1px solid #eee; padding:6px; border-radius:5px;">
-                                {% endif %}
-                            </div>
-                            
-                            <h5>{{ p['title'] }}</h5>
-                            <p class="price">${{ '%.2f'|format(p['price']) }}</p>
-                            {% if 'category' in p.keys() and p['category'] %}
-                                <span class="badge bg-secondary mb-2">{{ p['category'] }}</span>
-                            {% endif %}
+            <!-- Sidebar (desktop) -->
+            <aside class="col-md-3 d-none d-md-block mb-3">
+                <div class="list-group">
+                    <a href="{{ url_for('products', sort=sort, search=search) }}" class="list-group-item list-group-item-action {% if not category %}active{% endif %}">All Categories</a>
+                    {% for cat in categories %}
+                        <a href="{{ url_for('products', category=cat, sort=sort, search=search) }}" class="list-group-item list-group-item-action {% if category == cat %}active{% endif %}">{{ cat }}</a>
+                    {% endfor %}
+                </div>
+            </aside>
 
-                            <div class="seller-info">
-                                <a href="{{ url_for('seller_profile', seller_id=p['seller_id']) }}" class="text-decoration-none">
-                                    <span class="seller-name">{{ p['business_name'] or p['seller_name'] }}</span>
-                                    {% if p['rating'] %}
-                                        <span class="rating">★ {{ '%.1f'|format(p['rating']) }}</span>
-                                    {% endif %}
-                                </a>
-                            </div>
-
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="text-muted">Posted {{ (p['created_at'] or '')[:10] }}</span>
-                                <a href="{{ url_for('product_detail', product_id=p['id']) }}" class="btn btn-sm btn-outline-primary">View Details</a>
-                            </div>
+            <!-- Main content -->
+            <section class="col-12 col-md-9">
+                <!-- Top filters (visible on all screens) -->
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <div class="d-flex gap-2 align-items-center">
+                            <!-- Keep category select for mobile; redundant but useful -->
+                            <select class="form-select d-md-none" style="max-width: 220px;" id="categoryFilter">
+                                <option value="">All Categories</option>
+                                {% for cat in categories %}
+                                    <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat }}</option>
+                                {% endfor %}
+                            </select>
+                            <select class="form-select" style="max-width: 220px;" id="sortFilter">
+                                <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest First</option>
+                                <option value="price_low" {% if sort == 'price_low' %}selected{% endif %}>Price: Low to High</option>
+                                <option value="price_high" {% if sort == 'price_high' %}selected{% endif %}>Price: High to Low</option>
+                            </select>
                         </div>
                     </div>
-                {% endfor %}
-            {% else %}
-                <div class="col-12 text-center">
-                    <h3>No listings found</h3>
-                    <p>Try adjusting your search criteria or check back later for new listings.</p>
                 </div>
-            {% endif %}
+
+                <div class="row">
+                    {% if products %}
+                        {% for p in products %}
+                            <div class="col-md-6 col-lg-4">
+                                <div class="listing-card">
+                                    {% if p['stock'] is not none and p['stock'] == 0 %}
+                                        <span class="out-of-stock-badge">Out of Stock</span>
+                                    {% endif %}
+
+                                    <!-- Product Image -->
+                                    <div class="mb-2 text-center">
+                                        {% if 'image_url' in p.keys() and p['image_url'] %}
+                                            {% set img = p['image_url'] %}
+                                            {% if img.startswith('http://') or img.startswith('https://') or img.startswith('/') %}
+                                                <img src="{{ img }}" alt="{{ p['title'] }}" style="max-height:160px; width:100%; object-fit:contain; background:#fff; border:1px solid #eee; padding:6px; border-radius:5px;">
+                                            {% else %}
+                                                <img src="{{ url_for('static', filename='img/' ~ img) }}" alt="{{ p['title'] }}" style="max-height:160px; width:100%; object-fit:contain; background:#fff; border:1px solid #eee; padding:6px; border-radius:5px;">
+                                            {% endif %}
+                                        {% else %}
+                                            <img src="https://via.placeholder.com/300x200/e9ecef/6c757d?text={{ p['title'][:20] }}" alt="{{ p['title'] }}" style="max-height:160px; width:100%; object-fit:contain; border:1px solid #eee; padding:6px; border-radius:5px;">
+                                        {% endif %}
+                                    </div>
+
+                                    <h5>{{ p['title'] }}</h5>
+                                    <p class="price">${{ '%.2f'|format(p['price']) }}</p>
+                                    {% if 'category' in p.keys() and p['category'] %}
+                                        <span class="badge bg-secondary mb-2">{{ p['category'] }}</span>
+                                    {% endif %}
+
+                                    <div class="seller-info">
+                                        <a href="{{ url_for('seller_profile', seller_id=p['seller_id']) }}" class="text-decoration-none">
+                                            <span class="seller-name">{{ p['business_name'] or p['seller_name'] }}</span>
+                                            {% if p['rating'] %}
+                                                <span class="rating">★ {{ '%.1f'|format(p['rating']) }}</span>
+                                            {% endif %}
+                                        </a>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="text-muted">Posted {{ (p['created_at'] or '')[:10] }}</span>
+                                        <a href="{{ url_for('product_detail', product_id=p['id']) }}" class="btn btn-sm btn-outline-primary">View Details</a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="col-12 text-center">
+                            <h3>No listings found</h3>
+                            <p>Try adjusting your search criteria or check back later for new listings.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </section>
         </div>
     </div>
 
