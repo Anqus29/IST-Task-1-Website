@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Help Center - Secret Bay</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <style>
+        :root {
+            --primary-color: #00a87e;
+            --secondary-color: #f7f7f7;
+            --text-color: #2c3e50;
+        }
+
+        body {
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+        }
+
+        .help-section {
+            background: white;
+            padding: 60px 0;
+            margin-bottom: 40px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .info-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            padding: 25px;
+        }
+
+        .help-category {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .help-category:hover {
+            background-color: #f8f9fa;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+
+    <div class="help-section">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-8 text-center">
+                    <h1 class="display-4 mb-4">Help Center</h1>
+                    <p class="lead mb-4">Find answers to common questions and get support</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="info-card">
+                            <h4>🛒 Buying Guide</h4>
+                            <hr>
+                            <h6>How do I make a purchase?</h6>
+                            <p class="text-muted small">Browse products, add items to your cart, and proceed to checkout. You'll need to create an account to complete your order.</p>
+                            
+                            <h6 class="mt-3">How do I track my order?</h6>
+                            <p class="text-muted small">After placing an order, you can view it in your order history. Contact the seller for shipping details.</p>
+                            
+                            <h6 class="mt-3">Can I cancel my order?</h6>
+                            <p class="text-muted small">Contact the seller immediately if you need to cancel. Cancellation policies vary by seller.</p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="info-card">
+                            <h4>💼 Selling Guide</h4>
+                            <hr>
+                            <h6>How do I become a seller?</h6>
+                            <p class="text-muted small">Register for an account and contact our admin team to request seller status.</p>
+                            
+                            <h6 class="mt-3">How do I list products?</h6>
+                            <p class="text-muted small">Once you have seller status, you can add products through your seller dashboard.</p>
+                            
+                            <h6 class="mt-3">What are the fees?</h6>
+                            <p class="text-muted small">We charge a small commission on each sale. Contact us for detailed pricing information.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h4>🔐 Account & Security</h4>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>How do I reset my password?</h6>
+                            <p class="text-muted small">Click "Forgot Password" on the login page and follow the instructions sent to your email.</p>
+                            
+                            <h6 class="mt-3">Is my information secure?</h6>
+                            <p class="text-muted small">We use industry-standard encryption to protect your data and never share your information with third parties.</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>How do I update my account details?</h6>
+                            <p class="text-muted small">Log in to your account and navigate to your profile settings to update your information.</p>
+                            
+                            <h6 class="mt-3">Can I delete my account?</h6>
+                            <p class="text-muted small">Yes, contact our support team to request account deletion.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h4>💳 Payments & Refunds</h4>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>What payment methods are accepted?</h6>
+                            <p class="text-muted small">We accept all major credit cards, debit cards, and secure online payment methods.</p>
+                            
+                            <h6 class="mt-3">When will I be charged?</h6>
+                            <p class="text-muted small">Your payment method is charged immediately when you place an order.</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>What is your refund policy?</h6>
+                            <p class="text-muted small">Refund policies vary by seller. Contact the seller directly for their specific policy.</p>
+                            
+                            <h6 class="mt-3">How do refunds work?</h6>
+                            <p class="text-muted small">Approved refunds are processed back to your original payment method within 5-10 business days.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center mt-4">
+                    <h5>Still need help?</h5>
+                    <p class="text-muted">Can't find what you're looking for?</p>
+                    <a href="{{ url_for('contact') }}" class="btn btn-primary">Contact Support</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% include 'footer.html' %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

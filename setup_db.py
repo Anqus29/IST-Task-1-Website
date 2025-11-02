@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS products (
     price REAL NOT NULL CHECK(price >= 0),
     stock INTEGER DEFAULT 0,
     image_url TEXT,
+    category TEXT DEFAULT 'Other',
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY(seller_id) REFERENCES users(id) ON DELETE SET NULL
 );
@@ -70,10 +71,13 @@ SAMPLE_USERS = [
 ]
 
 SAMPLE_PRODUCTS = [
-    (1, "Vintage Clock", "An antique wall clock in good condition.", 49.99, 5),
-    (1, "Crystal Vase", "Hand-cut crystal vase from 1920s.", 299.99, 2),
-    (3, "Wireless Mouse", "Ergonomic wireless mouse, black.", 19.95, 25),
-    (3, "Mechanical Keyboard", "RGB mechanical keyboard with blue switches.", 89.99, 10)
+    # seller_id, title, description, price, stock, category, image_url
+    (1, "Vintage Clock", "An antique wall clock in good condition.", 49.99, 5, "Antiques", "product1.jpg"),
+    (1, "Crystal Vase", "Hand-cut crystal vase from 1920s.", 299.99, 2, "Antiques", "product2.jpg"),
+    (3, "Wireless Mouse", "Ergonomic wireless mouse, black.", 19.95, 25, "Electronics", "product3.jpg"),
+    (3, "Mechanical Keyboard", "RGB mechanical keyboard with blue switches.", 89.99, 10, "Electronics", "product4.jpg"),
+    (1, "Vintage Typewriter", "Working 1950s typewriter.", 149.99, 0, "Antiques", "product5.jpg"),
+    (3, "USB-C Hub", "7-in-1 USB-C adapter.", 34.99, 15, "Electronics", "product6.jpg")
 ]
 
 # optional sample addresses for seeded users
@@ -99,8 +103,8 @@ def initialize_db():
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', users_hashed)
     c.executemany('''
-        INSERT INTO products (seller_id, title, description, price, stock)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO products (seller_id, title, description, price, stock, category, image_url)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     ''', SAMPLE_PRODUCTS)
     # insert sample addresses (if any)
     c.executemany('''

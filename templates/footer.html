@@ -1,0 +1,31 @@
+<footer class="bg-light mt-5 py-4 border-top">
+  <div class="container">
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <h5>Secret Bay</h5>
+        <p class="text-muted small">Your trusted marketplace for unique finds.</p>
+      </div>
+      <div class="col-md-4 mb-3">
+        <h6>Quick Links</h6>
+        <ul class="list-unstyled small">
+          <li><a href="{{ url_for('index') }}" class="text-decoration-none text-muted">Home</a></li>
+          <li><a href="{{ url_for('products') }}" class="text-decoration-none text-muted">Browse Listings</a></li>
+          <li><a href="{{ url_for('about') }}" class="text-decoration-none text-muted">About Us</a></li>
+        </ul>
+      </div>
+      <div class="col-md-4 mb-3">
+        <h6>Support</h6>
+        <ul class="list-unstyled small">
+          <li><a href="{{ url_for('help') }}" class="text-decoration-none text-muted">Help Center</a></li>
+          <li><a href="{{ url_for('contact') }}" class="text-decoration-none text-muted">Contact Us</a></li>
+          <li><a href="{{ url_for('privacy') }}" class="text-decoration-none text-muted">Privacy Policy</a></li>
+          <li><a href="{{ url_for('terms') }}" class="text-decoration-none text-muted">Terms of Service</a></li>
+        </ul>
+      </div>
+    </div>
+    <hr>
+    <div class="text-center text-muted small">
+      &copy; 2025 Secret Bay. All rights reserved.
+    </div>
+  </div>
+</footer>

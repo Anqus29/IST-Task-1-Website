@@ -1,9 +1,14 @@
 add sale registration 
 add password str checker
-add location map(google)
-better ui design
 add cookies
-email verification
 fix mobile website
 add example products
 light and dark mode
+fix admin page
+Footer bar
+requirements
+seller page
+favicon 
+out of stock sign
+categories
+requirements

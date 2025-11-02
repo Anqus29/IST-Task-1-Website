@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_file
 from functools import wraps
 import sqlite3
 import os
@@ -51,22 +51,25 @@ def login_required(f):
 
 @app.context_processor
 def inject_user_permissions():
-    """Inject a helper into templates: current_user_is_admin -> True/False
-    True if the logged-in user has is_admin flag or matches the special admin username.
+    """Inject helpers into templates: current_user_is_admin and current_user_is_seller
     """
     uid = session.get('user_id')
     is_admin_flag = False
+    is_seller_flag = False
     if uid:
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute("SELECT username, is_admin FROM users WHERE id = ?", (uid,))
+        cur.execute("SELECT username, is_admin, is_seller FROM users WHERE id = ?", (uid,))
         u = cur.fetchone()
         conn.close()
         if u:
             allowed_admin_username = 'Bean'
             if (u['username'] and u['username'].strip().lower() == allowed_admin_username.strip().lower()) or u['is_admin']:
                 is_admin_flag = True
-    return {'current_user_is_admin': is_admin_flag}
+            if u['is_seller']:
+                is_seller_flag = True
+    return {'current_user_is_admin': is_admin_flag, 'current_user_is_seller': is_seller_flag}
+
 
 def admin_required(f):
     @wraps(f)
@@ -96,7 +99,7 @@ def index():
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
-        SELECT p.id, p.title, p.description, p.price, p.created_at, p.seller_id, p.image_url, u.business_name, u.rating, u.username AS seller_username
+        SELECT p.id, p.title, p.description, p.price, p.stock, p.created_at, p.seller_id, p.image_url, u.business_name, u.rating, u.username AS seller_username
         FROM products p 
         LEFT JOIN users u ON p.seller_id = u.id 
         ORDER BY p.created_at DESC LIMIT 6
@@ -109,23 +112,54 @@ def index():
 def about():
     return render_template('about.html')
 
+@app.route('/contact', methods=['GET', 'POST'])
+def contact():
+    if request.method == 'POST':
+        # In a real app, you would send an email or save to database
+        name = request.form.get('name')
+        email = request.form.get('email')
+        subject = request.form.get('subject')
+        message = request.form.get('message')
+        flash('Thank you for contacting us! We will respond to your message soon.', 'success')
+        return redirect(url_for('contact'))
+    return render_template('contact.html')
+
+@app.route('/help')
+def help():
+    return render_template('help.html')
+
+@app.route('/privacy')
+def privacy():
+    return render_template('privacy.html')
+
+@app.route('/terms')
+def terms():
+    return render_template('terms.html')
+
 @app.route('/products')
 def products():
     search = request.args.get('search', '')
     sort = request.args.get('sort', 'newest')
+    category = request.args.get('category', '')
     conn = get_db_connection()
     cur = conn.cursor()
     base = """
      SELECT p.id, p.title, p.description, p.price, p.created_at, 
-         p.stock, p.image_url, u.business_name, u.rating, p.seller_id
+         p.stock, p.image_url, p.category, u.business_name, u.rating, p.seller_id
         FROM products p 
         LEFT JOIN users u ON p.seller_id = u.id
     """
     params = []
-    where = ""
+    conditions = []
     if search:
-        where = " WHERE p.title LIKE ? OR p.description LIKE ?"
+        conditions.append("(p.title LIKE ? OR p.description LIKE ?)")
         params.extend([f"%{search}%", f"%{search}%"])
+    if category:
+        conditions.append("p.category = ?")
+        params.append(category)
+    
+    where = " WHERE " + " AND ".join(conditions) if conditions else ""
+    
     if sort == 'price_low':
         order = " ORDER BY p.price ASC"
     elif sort == 'price_high':
@@ -133,9 +167,14 @@ def products():
     else:
         order = " ORDER BY p.created_at DESC"
     cur.execute(base + where + order, params)
-    products = cur.fetchall()
+    products_list = cur.fetchall()
+    
+    # Get distinct categories for filter dropdown
+    cur.execute("SELECT DISTINCT category FROM products WHERE category IS NOT NULL ORDER BY category")
+    categories = [row['category'] for row in cur.fetchall()]
+    
     conn.close()
-    return render_template('products.html', products=products, search=search, sort=sort)
+    return render_template('products.html', products=products_list, search=search, sort=sort, category=category, categories=categories)
 
 @app.route('/product/<int:product_id>')
 def product_detail(product_id):
@@ -506,6 +545,115 @@ def seller_profile(seller_id):
     conn.close()
     return render_template('seller_profile.html', seller=seller, products=products)
 
+# Serve favicon automatically from available assets
+@app.route('/favicon.ico')
+def favicon():
+    """Serve a favicon even if favicon.ico isn't present.
+    Priority:
+      1) static/img/logo.png (PNG)
+      2) static/favicon.png (PNG)
+      3) static/favicon.ico (ICO)
+    """
+    # Paths
+    logo_png = os.path.join(app.root_path, 'static', 'img', 'logo.png')
+    png_path = os.path.join(app.root_path, 'static', 'favicon.png')
+    ico_path = os.path.join(app.root_path, 'static', 'favicon.ico')
+
+    if os.path.exists(logo_png):
+        return send_file(logo_png, mimetype='image/png')
+    if os.path.exists(png_path):
+        return send_file(png_path, mimetype='image/png')
+    if os.path.exists(ico_path):
+        return send_file(ico_path, mimetype='image/x-icon')
+    # If nothing exists, return 204 No Content to avoid 404 noise
+    return ('', 204)
+
+@app.route('/post-ad', methods=['GET', 'POST'])
+@login_required
+def post_ad():
+    # Check if user is a seller
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT is_seller FROM users WHERE id = ?", (session.get('user_id'),))
+    user = cur.fetchone()
+    
+    if not user or not user['is_seller']:
+        conn.close()
+        flash("You must be a seller to post ads. Please contact support to become a seller.", "warning")
+        return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        title = request.form.get('title', '').strip()
+        description = request.form.get('description', '').strip()
+        price = request.form.get('price', '0').strip()
+        stock = request.form.get('stock', '0').strip()
+        category = request.form.get('category', 'Other').strip()
+        image_url = request.form.get('image_url', '').strip() or None
+        
+        # Handle image URL formatting
+        if image_url and not (image_url.startswith('http://') or image_url.startswith('https://') or image_url.startswith('/')):
+            # Treat bare filenames as files placed under /static/img/
+            image_url = f"/static/img/{image_url}"
+        
+        # Validation
+        if not title:
+            flash("Title is required.", "danger")
+            conn.close()
+            return redirect(url_for('post_ad'))
+        
+        try:
+            price_val = float(price)
+            stock_val = int(stock)
+            if price_val < 0 or stock_val < 0:
+                raise ValueError("Price and stock must be non-negative")
+        except ValueError as e:
+            flash(f"Invalid price or stock: {e}", "danger")
+            conn.close()
+            return redirect(url_for('post_ad'))
+        
+        # Insert the product
+        seller_id = session.get('user_id')
+        cur.execute(
+            "INSERT INTO products (seller_id, title, description, price, stock, image_url, category) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (seller_id, title, description, price_val, stock_val, image_url, category)
+        )
+        conn.commit()
+        product_id = cur.lastrowid
+        conn.close()
+        
+        flash("Your ad has been posted successfully!", "success")
+        return redirect(url_for('product_detail', product_id=product_id))
+    
+    conn.close()
+    return render_template('post_ad.html')
+
+@app.route('/my-listings')
+@login_required
+def my_listings():
+    # Show products posted by the current user (if they're a seller)
+    user_id = session.get('user_id')
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    cur.execute("SELECT is_seller FROM users WHERE id = ?", (user_id,))
+    user = cur.fetchone()
+    
+    if not user or not user['is_seller']:
+        conn.close()
+        flash("You must be a seller to view listings.", "warning")
+        return redirect(url_for('index'))
+    
+    cur.execute("""
+        SELECT id, title, description, price, stock, category, image_url, created_at 
+        FROM products 
+        WHERE seller_id = ? 
+        ORDER BY created_at DESC
+    """, (user_id,))
+    products = cur.fetchall()
+    conn.close()
+    
+    return render_template('my_listings.html', products=products)
+
 # Admin dashboard
 @app.route('/admin')
 @admin_required
@@ -571,6 +719,7 @@ def admin_product_new():
         price = request.form.get('price','0').strip()
         stock = request.form.get('stock','0').strip()
         seller_id = request.form.get('seller_id') or None
+        category = request.form.get('category','Other').strip()
         # optional image filename/URL provided by admin
         image_url = request.form.get('image_url','').strip() or None
         if image_url and not (image_url.startswith('http://') or image_url.startswith('https://') or image_url.startswith('/')):
@@ -584,8 +733,8 @@ def admin_product_new():
             return redirect(url_for('admin_product_new'))
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute("INSERT INTO products (seller_id, title, description, price, stock, image_url) VALUES (?, ?, ?, ?, ?, ?)",
-                    (seller_id, title, description, price_val, stock_val, image_url))
+        cur.execute("INSERT INTO products (seller_id, title, description, price, stock, image_url, category) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (seller_id, title, description, price_val, stock_val, image_url, category))
         conn.commit()
         conn.close()
         flash("Product created.")
@@ -615,6 +764,7 @@ def admin_product_edit(product_id):
         price = request.form.get('price','0').strip()
         stock = request.form.get('stock','0').strip()
         seller_id = request.form.get('seller_id') or None
+        category = request.form.get('category','Other').strip()
         try:
             price_val = float(price)
             stock_val = int(stock)
@@ -627,11 +777,11 @@ def admin_product_edit(product_id):
             image_url = f"/static/img/{image_url}"
 
         if image_url is not None:
-            cur.execute("UPDATE products SET seller_id = ?, title = ?, description = ?, price = ?, stock = ?, image_url = ? WHERE id = ?",
-                (seller_id, title, description, price_val, stock_val, image_url, product_id))
+            cur.execute("UPDATE products SET seller_id = ?, title = ?, description = ?, price = ?, stock = ?, image_url = ?, category = ? WHERE id = ?",
+                (seller_id, title, description, price_val, stock_val, image_url, category, product_id))
         else:
-            cur.execute("UPDATE products SET seller_id = ?, title = ?, description = ?, price = ?, stock = ? WHERE id = ?",
-                (seller_id, title, description, price_val, stock_val, product_id))
+            cur.execute("UPDATE products SET seller_id = ?, title = ?, description = ?, price = ?, stock = ?, category = ? WHERE id = ?",
+                (seller_id, title, description, price_val, stock_val, category, product_id))
         conn.commit()
         conn.close()
         flash("Product updated.")
