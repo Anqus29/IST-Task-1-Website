@@ -13,8 +13,10 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT NOT NULL,
     is_admin INTEGER NOT NULL DEFAULT 0,
     is_seller INTEGER NOT NULL DEFAULT 0,
+    is_verified INTEGER NOT NULL DEFAULT 0,
     business_name TEXT,
     seller_description TEXT,
+    profile_picture TEXT,
     rating REAL DEFAULT 0,
     total_sales INTEGER DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -28,6 +30,9 @@ CREATE TABLE IF NOT EXISTS products (
     stock INTEGER DEFAULT 0,
     image_url TEXT,
     category TEXT DEFAULT 'Other',
+    condition TEXT DEFAULT 'used',
+    location TEXT,
+    view_count INTEGER DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY(seller_id) REFERENCES users(id) ON DELETE SET NULL
 );
@@ -38,6 +43,7 @@ CREATE TABLE IF NOT EXISTS orders (
     buyer_email TEXT,
     shipping_address TEXT,
     status TEXT NOT NULL DEFAULT 'pending',
+    refund_status TEXT,
     total REAL NOT NULL CHECK(total >= 0),
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY(buyer_id) REFERENCES users(id)
@@ -69,10 +75,60 @@ CREATE TABLE IF NOT EXISTS reviews (
     rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5),
     title TEXT,
     body TEXT,
+    seller_response TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE CASCADE,
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE(product_id, user_id)
+);
+-- favorites/wishlist
+CREATE TABLE IF NOT EXISTS favorites (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE CASCADE,
+    UNIQUE(user_id, product_id)
+);
+-- notifications
+CREATE TABLE IF NOT EXISTS notifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    message TEXT NOT NULL,
+    link TEXT,
+    is_read INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+-- password reset tokens
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    token TEXT NOT NULL UNIQUE,
+    expires_at TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+-- product reports
+CREATE TABLE IF NOT EXISTS product_reports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id INTEGER NOT NULL,
+    reporter_id INTEGER NOT NULL,
+    reason TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE CASCADE,
+    FOREIGN KEY(reporter_id) REFERENCES users(id) ON DELETE CASCADE
+);
+-- recently viewed products
+CREATE TABLE IF NOT EXISTS product_views (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    product_id INTEGER NOT NULL,
+    viewed_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE CASCADE
 );
 """
 

@@ -82,6 +82,48 @@
             font-size: 0.85rem;
             font-weight: bold;
         }
+
+        .category-card {
+            cursor: pointer;
+            border: 2px solid #e9ecef;
+        }
+
+        .category-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-color: var(--primary-color);
+        }
+
+        .category-card h6 {
+            margin: 0;
+            color: var(--text-color);
+            font-weight: 600;
+        }
+
+        .stats-section {
+            background: white;
+            padding: 40px 0;
+            margin: 40px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 1rem;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -106,56 +148,297 @@
         </div>
     </div>
 
+    <!-- Stats Section -->
     <div class="container">
-        <h2 class="mb-4">Featured Listings</h2>
-        <div class="row">
-            {% if featured_products %}
-                {% for p in featured_products %}
-                    <div class="col-md-4">
-                        <div class="listing-card">
-                            {% if p['stock'] is not none and p['stock'] == 0 %}
-                                <span class="out-of-stock-badge">Out of Stock</span>
-                            {% endif %}
-                            
-                            <!-- Product Image -->
-                            <div class="mb-2 text-center">
-                                {% if 'image_url' in p.keys() and p['image_url'] %}
-                                    {% set img = p['image_url'] %}
-                                    {% if img.startswith('http://') or img.startswith('https://') or img.startswith('/') %}
-                                        <img src="{{ img }}" alt="{{ p['title'] }}" style="max-height:160px; width:100%; object-fit:contain; background:#fff; border:1px solid #eee; padding:6px; border-radius:5px;">
-                                    {% else %}
-                                        <img src="{{ url_for('static', filename='img/' ~ img) }}" alt="{{ p['title'] }}" style="max-height:160px; width:100%; object-fit:contain; background:#fff; border:1px solid #eee; padding:6px; border-radius:5px;">
-                                    {% endif %}
-                                {% else %}
-                                    <img src="https://via.placeholder.com/300x200/e9ecef/6c757d?text={{ p['title'][:20] }}" alt="{{ p['title'] }}" style="max-height:160px; width:100%; object-fit:contain; border:1px solid #eee; padding:6px; border-radius:5px;">
-                                {% endif %}
-                            </div>
-                            
-                            <h5>{{ p['title'] }}</h5>
-                            <p class="price">${{ '%.2f'|format(p['price']) }}</p>
-                            <div class="seller-info mt-2">
-                                <a href="{{ url_for('seller_profile', seller_id=p['seller_id']) }}" class="text-decoration-none">
-                                    <span class="seller-name">{{ p['business_name'] or p['seller_username'] or 'Seller' }}</span>
-                                    {% if p['rating'] %}
-                                        <span class="rating">★ {{ '%.1f'|format(p['rating']) }}</span>
-                                    {% endif %}
-                                </a>
-                            </div>
+        <div class="stats-section">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="stat-item">
+                        <div class="stat-number">{{ stats['active_listings'] if stats else '0' }}</div>
+                        <div class="stat-label">Active Listings</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-item">
+                        <div class="stat-number">{{ stats['total_sellers'] if stats else '0' }}</div>
+                        <div class="stat-label">Trusted Sellers</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-item">
+                        <div class="stat-number">{{ stats['total_users'] if stats else '0' }}+</div>
+                        <div class="stat-label">Community Members</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="text-muted">Posted {{ (p['created_at'] or '')[:10] }}</span>
-                                <a href="{{ url_for('product_detail', product_id=p['id']) }}" class="btn btn-sm btn-outline-primary">View Details</a>
+    <div class="container">
+        <!-- Popular Categories Section -->
+        <div class="mb-5">
+            <h3 class="mb-4 text-center">Browse by Category</h3>
+            <div class="row row-cols-2 row-cols-md-3 row-cols-lg-6 g-3">
+                <div class="col">
+                    <a href="{{ url_for('products', category='Electronics') }}" class="text-decoration-none">
+                        <div class="card text-center h-100 category-card" style="transition: all 0.3s;">
+                            <div class="card-body">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-laptop mb-2 text-primary" viewBox="0 0 16 16">
+                                    <path d="M13.5 3a.5.5 0 0 1 .5.5V11H2V3.5a.5.5 0 0 1 .5-.5h11zm-11-1A1.5 1.5 0 0 0 1 3.5V12h14V3.5A1.5 1.5 0 0 0 13.5 2h-11zM0 12.5h16a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 12.5z"/>
+                                </svg>
+                                <h6>Electronics</h6>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col">
+                    <a href="{{ url_for('products', category='Furniture') }}" class="text-decoration-none">
+                        <div class="card text-center h-100 category-card" style="transition: all 0.3s;">
+                            <div class="card-body">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-house-door mb-2 text-success" viewBox="0 0 16 16">
+                                    <path d="M8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4.5a.5.5 0 0 0 .5-.5v-4h2v4a.5.5 0 0 0 .5.5H14a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146zM2.5 14V7.707l5.5-5.5 5.5 5.5V14H10v-4a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5v4H2.5z"/>
+                                </svg>
+                                <h6>Furniture</h6>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col">
+                    <a href="{{ url_for('products', category='Clothing') }}" class="text-decoration-none">
+                        <div class="card text-center h-100 category-card" style="transition: all 0.3s;">
+                            <div class="card-body">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-bag mb-2 text-danger" viewBox="0 0 16 16">
+                                    <path d="M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1zm3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4h-3.5zM2 5h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5z"/>
+                                </svg>
+                                <h6>Clothing</h6>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col">
+                    <a href="{{ url_for('products', category='Books') }}" class="text-decoration-none">
+                        <div class="card text-center h-100 category-card" style="transition: all 0.3s;">
+                            <div class="card-body">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-book mb-2 text-info" viewBox="0 0 16 16">
+                                    <path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.461-3.287.811V2.828zm7.5-.141c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492V2.687zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783z"/>
+                                </svg>
+                                <h6>Books</h6>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col">
+                    <a href="{{ url_for('products', category='Sports') }}" class="text-decoration-none">
+                        <div class="card text-center h-100 category-card" style="transition: all 0.3s;">
+                            <div class="card-body">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-trophy mb-2 text-warning" viewBox="0 0 16 16">
+                                    <path d="M2.5.5A.5.5 0 0 1 3 0h10a.5.5 0 0 1 .5.5c0 .538-.012 1.05-.034 1.536a3 3 0 1 1-1.133 5.89c-.79 1.865-1.878 2.777-2.833 3.011v2.173l1.425.356c.194.048.377.135.537.255L13.3 15.1a.5.5 0 0 1-.3.9H3a.5.5 0 0 1-.3-.9l1.838-1.379c.16-.12.343-.207.537-.255L6.5 13.11v-2.173c-.955-.234-2.043-1.146-2.833-3.012a3 3 0 1 1-1.132-5.89A33.076 33.076 0 0 1 2.5.5zm.099 2.54a2 2 0 0 0 .72 3.935c-.333-1.05-.588-2.346-.72-3.935zm10.083 3.935a2 2 0 0 0 .72-3.935c-.133 1.59-.388 2.885-.72 3.935zM3.504 1c.007.517.026 1.006.056 1.469.13 2.028.457 3.546.87 4.667C5.294 9.48 6.484 10 7 10a.5.5 0 0 1 .5.5v2.61a1 1 0 0 1-.757.97l-1.426.356a.5.5 0 0 0-.179.085L4.5 15h7l-.638-.479a.501.501 0 0 0-.18-.085l-1.425-.356a1 1 0 0 1-.757-.97V10.5A.5.5 0 0 1 9 10c.516 0 1.706-.52 2.57-2.864.413-1.12.74-2.64.87-4.667.03-.463.049-.952.056-1.469H3.504z"/>
+                                </svg>
+                                <h6>Sports</h6>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col">
+                    <a href="{{ url_for('products', category='Other') }}" class="text-decoration-none">
+                        <div class="card text-center h-100 category-card" style="transition: all 0.3s;">
+                            <div class="card-body">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-grid-3x3-gap mb-2 text-secondary" viewBox="0 0 16 16">
+                                    <path d="M4 2v2H2V2h2zm1 12v-2a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1zm0-5V7a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1zm5 5v-2a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1zm0-5V7a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1zM9 2v2H7V2h2zm5 0v2h-2V2h2zM4 7v2H2V7h2zm5 0v2H7V7h2zm5 0h-2v2h2V7zM4 12v2H2v-2h2zm5 0v2H7v-2h2zm5 0v2h-2v-2h2zM12 1a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1h-2zm-1 6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V7zm1 4a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1h-2z"/>
+                                </svg>
+                                <h6>Other</h6>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- How It Works Section -->
+        <div class="my-5 py-5" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px;">
+            <div class="container">
+                <h3 class="mb-4 text-center text-white">How It Works</h3>
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <div class="text-center text-white">
+                            <div class="mb-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                                </svg>
+                            </div>
+                            <h5>1. Browse Listings</h5>
+                            <p>Search through thousands of local listings or browse by category</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center text-white">
+                            <div class="mb-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-chat-dots" viewBox="0 0 16 16">
+                                    <path d="M5 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
+                                    <path d="m2.165 15.803.02-.004c1.83-.363 2.948-.842 3.468-1.105A9.06 9.06 0 0 0 8 15c4.418 0 8-3.134 8-7s-3.582-7-8-7-8 3.134-8 7c0 1.76.743 3.37 1.97 4.6a10.437 10.437 0 0 1-.524 2.318l-.003.011a10.722 10.722 0 0 1-.244.637c-.079.186.074.394.273.362a21.673 21.673 0 0 0 .693-.125zm.8-3.108a1 1 0 0 0-.287-.801C1.618 10.83 1 9.468 1 8c0-3.192 3.004-6 7-6s7 2.808 7 6c0 3.193-3.004 6-7 6a8.06 8.06 0 0 1-2.088-.272 1 1 0 0 0-.711.074c-.387.196-1.24.57-2.634.893a10.97 10.97 0 0 0 .398-2z"/>
+                                </svg>
+                            </div>
+                            <h5>2. Connect with Sellers</h5>
+                            <p>Message sellers, ask questions, and arrange safe meetups</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center text-white">
+                            <div class="mb-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-bag-check" viewBox="0 0 16 16">
+                                    <path fill-rule="evenodd" d="M10.854 8.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 0 1 .708-.708L7.5 10.793l2.646-2.647a.5.5 0 0 1 .708 0z"/>
+                                    <path d="M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1zm3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4h-3.5zM2 5h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5z"/>
+                                </svg>
+                            </div>
+                            <h5>3. Complete the Deal</h5>
+                            <p>Buy or sell items safely in your local community</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="mb-4">Featured Listings</h2>
+        
+        {% if featured_products and featured_products|length > 0 %}
+        <!-- Carousel -->
+        <div id="featuredCarousel" class="carousel slide mb-5" data-bs-ride="carousel">
+            <div class="carousel-indicators">
+                {% for p in featured_products %}
+                <button type="button" data-bs-target="#featuredCarousel" data-bs-slide-to="{{ loop.index0 }}" {% if loop.first %}class="active" aria-current="true"{% endif %} aria-label="Slide {{ loop.index }}"></button>
+                {% endfor %}
+            </div>
+            <div class="carousel-inner">
+                {% for p in featured_products %}
+                <div class="carousel-item {% if loop.first %}active{% endif %}">
+                    <div class="row justify-content-center">
+                        <div class="col-md-8">
+                            <div class="listing-card position-relative">
+                                {% if p['stock'] is not none and p['stock'] == 0 %}
+                                    <span class="out-of-stock-badge">Out of Stock</span>
+                                {% endif %}
+                                
+                                <div class="row g-3">
+                                    <div class="col-md-5">
+                                        <!-- Product Image -->
+                                        <div class="text-center">
+                                            {% if 'image_url' in p.keys() and p['image_url'] %}
+                                                {% set img = p['image_url'] %}
+                                                {% if img.startswith('http://') or img.startswith('https://') or img.startswith('/') %}
+                                                    <img src="{{ img }}" alt="{{ p['title'] }}" style="max-height:280px; width:100%; object-fit:contain; background:#fff; border:1px solid #eee; padding:10px; border-radius:5px;">
+                                                {% else %}
+                                                    <img src="{{ url_for('static', filename='img/' ~ img) }}" alt="{{ p['title'] }}" style="max-height:280px; width:100%; object-fit:contain; background:#fff; border:1px solid #eee; padding:10px; border-radius:5px;">
+                                                {% endif %}
+                                            {% else %}
+                                                <img src="https://via.placeholder.com/400x280/e9ecef/6c757d?text={{ p['title'][:20] }}" alt="{{ p['title'] }}" style="max-height:280px; width:100%; object-fit:contain; border:1px solid #eee; padding:10px; border-radius:5px;">
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-7">
+                                        <h3>{{ p['title'] }}</h3>
+                                        <p class="price">${{ '%.2f'|format(p['price']) }}</p>
+                                        {% if p['description'] %}
+                                            <p class="text-muted">{{ p['description'][:150] }}{% if p['description']|length > 150 %}...{% endif %}</p>
+                                        {% endif %}
+                                        <div class="seller-info mt-2">
+                                            <a href="{{ url_for('seller_profile', seller_id=p['seller_id']) }}" class="text-decoration-none">
+                                                <span class="seller-name">{{ p['business_name'] or p['seller_username'] or 'Seller' }}</span>
+                                                {% if p['rating'] %}
+                                                    <span class="rating">★ {{ '%.1f'|format(p['rating']) }}</span>
+                                                {% endif %}
+                                            </a>
+                                        </div>
+                                        <div class="mt-3">
+                                            <a href="{{ url_for('product_detail', product_id=p['id']) }}" class="btn btn-primary">View Details</a>
+                                        </div>
+                                        <div class="mt-2">
+                                            <small class="text-muted">Posted {{ (p['created_at'] or '')[:10] }}</small>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                {% endfor %}
-            {% else %}
-                <div class="col-12 text-center">
-                    <p>No featured listings available.</p>
                 </div>
-            {% endif %}
+                {% endfor %}
+            </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#featuredCarousel" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true" style="filter: invert(1);"></span>
+                <span class="visually-hidden">Previous</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#featuredCarousel" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true" style="filter: invert(1);"></span>
+                <span class="visually-hidden">Next</span>
+            </button>
+        </div>
+        {% else %}
+        <div class="text-center">
+            <p>No featured listings available.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Recently Viewed Section -->
+    {% if recently_viewed and recently_viewed|length > 0 %}
+    <div class="container my-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3>
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" class="bi bi-clock-history me-2" viewBox="0 0 16 16">
+                    <path d="M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022l-.074.997zm2.004.45a7.003 7.003 0 0 0-.985-.299l.219-.976c.383.086.76.2 1.126.342l-.36.933zm1.37.71a7.01 7.01 0 0 0-.439-.27l.493-.87a8.025 8.025 0 0 1 .979.654l-.615.789a6.996 6.996 0 0 0-.418-.302zm1.834 1.79a6.99 6.99 0 0 0-.653-.796l.724-.69c.27.285.52.59.747.91l-.818.576zm.744 1.352a7.08 7.08 0 0 0-.214-.468l.893-.45a7.976 7.976 0 0 1 .45 1.088l-.95.313a7.023 7.023 0 0 0-.179-.483zm.53 2.507a6.991 6.991 0 0 0-.1-1.025l.985-.17c.067.386.106.778.116 1.17l-1 .025zm-.131 1.538c.033-.17.06-.339.081-.51l.993.123a7.957 7.957 0 0 1-.23 1.155l-.964-.267c.046-.165.086-.332.12-.501zm-.952 2.379c.184-.29.346-.594.486-.908l.914.405c-.16.36-.345.706-.555 1.038l-.845-.535zm-.964 1.205c.122-.122.239-.248.35-.378l.758.653a8.073 8.073 0 0 1-.401.432l-.707-.707z"/>
+                    <path d="M8 1a7 7 0 1 0 4.95 11.95l.707.707A8.001 8.001 0 1 1 8 0v1z"/>
+                    <path d="M7.5 3a.5.5 0 0 1 .5.5v5.21l3.248 1.856a.5.5 0 0 1-.496.868l-3.5-2A.5.5 0 0 1 7 9V3.5a.5.5 0 0 1 .5-.5z"/>
+                </svg>
+                Recently Viewed
+            </h3>
+        </div>
+
+        <div class="row row-cols-2 row-cols-md-4 g-3">
+            {% for p in recently_viewed %}
+                <div class="col">
+                    <div class="card h-100 recently-viewed-card" style="transition: transform 0.2s;">
+                        <a href="{{ url_for('product_detail', product_id=p['id']) }}" class="text-decoration-none text-dark">
+                            {% if 'image_url' in p.keys() and p['image_url'] %}
+                                {% set img = p['image_url'] %}
+                                {% if img.startswith('http://') or img.startswith('https://') or img.startswith('/') %}
+                                    <img src="{{ img }}" class="card-img-top" alt="{{ p['title'] }}" style="height: 180px; object-fit: contain; background: #fff; padding: 10px;">
+                                {% else %}
+                                    <img src="{{ url_for('static', filename='img/' ~ img) }}" class="card-img-top" alt="{{ p['title'] }}" style="height: 180px; object-fit: contain; background: #fff; padding: 10px;">
+                                {% endif %}
+                            {% else %}
+                                <img src="https://via.placeholder.com/200x180?text=No+Image" class="card-img-top" alt="No image" style="height: 180px; object-fit: contain;">
+                            {% endif %}
+                            <div class="card-body p-3">
+                                <h6 class="card-title mb-2" style="overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical;">{{ p['title'] }}</h6>
+                                <p class="card-text text-success fw-bold mb-2">${{ '%.2f'|format(p['price']) }}</p>
+                                {% if p['stock'] is not none and p['stock'] <= 0 %}
+                                    <span class="badge bg-danger">Out of stock</span>
+                                {% elif p['stock'] is not none and p['stock'] < 5 %}
+                                    <span class="badge bg-warning text-dark">{{ p['stock'] }} left</span>
+                                {% endif %}
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
         </div>
     </div>
+
+    <script>
+        // Add hover effect to recently viewed cards
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.recently-viewed-card').forEach(card => {
+                card.addEventListener('mouseenter', () => {
+                    card.style.transform = 'translateY(-5px)';
+                    card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                });
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'translateY(0)';
+                    card.style.boxShadow = '';
+                });
+            });
+        });
+    </script>
+    {% endif %}
 
     {% include 'footer.html' %}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
