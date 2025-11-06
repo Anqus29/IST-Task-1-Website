@@ -12,6 +12,30 @@
     .addr-suggestions button { width:100%; text-align:left; padding:8px 12px; border:0; background:transparent; }
     .addr-suggestions button:hover { background:#f1f1f1; }
     .addr-wrap { position:relative; }
+
+    /* Mobile-friendly form styles */
+    .form-control,
+    .btn {
+      min-height: 44px;
+    }
+
+    @media (max-width: 576px) {
+      body.p-4 {
+        padding: 1rem !important;
+      }
+
+      h1 {
+        font-size: 1.75rem;
+      }
+
+      h4 {
+        font-size: 1.25rem;
+      }
+
+      .btn {
+        width: 100%;
+      }
+    }
   </style>
 </head>
 <body class="p-4">

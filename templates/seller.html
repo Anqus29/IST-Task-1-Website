@@ -14,7 +14,6 @@
             --text-color: #2c3e50;
         }
         body { background: var(--secondary-color); color: var(--text-color); }
-        .navbar { background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .profile-header { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
         .listing-card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 15px; }
         .price { color: var(--primary-color); font-weight: bold; }
@@ -22,17 +21,7 @@
     </style>
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-light">
-    <div class="container">
-        <a class="navbar-brand" href="/">Secret Bay</a>
-        <div class="navbar-nav ms-auto">
-            <a class="nav-link" href="/">Home</a>
-            <a class="nav-link" href="/about">About</a>
-            <a class="nav-link" href="/products">Browse All</a>
-            <a class="btn btn-primary ms-2" href="{{ url_for('post_ad') }}">Post an Ad</a>
-        </div>
-    </div>
-</nav>
+{% include 'navbar.html' %}
 
 <div class="container mt-4">
     {% if seller %}

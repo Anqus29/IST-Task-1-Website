@@ -11,6 +11,54 @@
     .company-statement { background:#fbfbfb; border-left:4px solid #00a87e; padding:12px; margin-top:12px; }
     .stock-badge.low { background:#ffc107; color:#000; }
     .stock-badge.out { background:#dc3545; color:#fff; }
+
+    /* Mobile Responsive Styles */
+    @media (max-width: 768px) {
+      .product-image {
+        max-height: 300px;
+      }
+
+      .lead.h4 {
+        font-size: 1.5rem;
+      }
+
+      h2 {
+        font-size: 1.5rem;
+      }
+
+      .btn {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .product-image {
+        max-height: 250px;
+      }
+
+      .col-auto input[type="number"] {
+        width: 80px !important;
+      }
+
+      .row.g-2 {
+        flex-direction: column;
+      }
+
+      .row.g-2 .col,
+      .row.g-2 .col-auto {
+        width: 100%;
+      }
+
+      .btn {
+        width: 100%;
+        margin: 5px 0 !important;
+      }
+
+      .ms-2 {
+        margin-left: 0 !important;
+      }
+    }
   </style>
 </head>
 <body class="p-0">

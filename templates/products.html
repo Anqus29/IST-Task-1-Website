@@ -18,16 +18,15 @@
             color: var(--text-color);
         }
 
-        .navbar {
-            background-color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
         .search-bar {
             background: white;
             padding: 20px;
             border-bottom: 1px solid #ddd;
             margin-bottom: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 1020;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
         .listing-card {
@@ -87,10 +86,87 @@
             font-size: 0.85rem;
             font-weight: bold;
         }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .search-bar {
+                padding: 15px;
+            }
+
+            .listing-card {
+                padding: 12px;
+            }
+
+            .price {
+                font-size: 1.1rem;
+            }
+
+            .date-posted {
+                font-size: 0.85rem;
+            }
+
+            /* Mobile filter toggle */
+            .mobile-filter-toggle {
+                width: 100%;
+                margin-bottom: 15px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .listing-card img {
+                max-height: 150px;
+            }
+
+            .listing-card h5 {
+                font-size: 1rem;
+            }
+
+            .btn-sm {
+                font-size: 0.85rem;
+                padding: 0.25rem 0.5rem;
+            }
+        }
     </style>
 </head>
 <body>
     {% include 'navbar.html' %}
+
+    <!-- Search Bar and Categories Section -->
+    <div class="search-bar">
+        <div class="container">
+            <div class="row mb-3">
+                <div class="col-12">
+                    <form action="{{ url_for('products') }}" method="get">
+                        <div class="input-group">
+                            <input name="search" class="form-control" type="search" placeholder="Search listings..." aria-label="Search" value="{{ request.args.get('search','') }}">
+                            <button class="btn btn-primary" type="submit">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                                </svg>
+                                Search
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Category Chips -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{{ url_for('products', sort=sort, search=search) }}" class="btn btn-sm {% if not category %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                            All Categories
+                        </a>
+                        {% for cat in categories %}
+                            <a href="{{ url_for('products', category=cat, sort=sort, search=search) }}" class="btn btn-sm {% if category == cat %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                {{ cat }}
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="container">
         <div class="row">
@@ -106,26 +182,6 @@
 
             <!-- Main content -->
             <section class="col-12 col-md-9">
-                <!-- Top filters (visible on all screens) -->
-                <div class="row mb-3">
-                    <div class="col-12">
-                        <div class="d-flex gap-2 align-items-center">
-                            <!-- Keep category select for mobile; redundant but useful -->
-                            <select class="form-select d-md-none" style="max-width: 220px;" id="categoryFilter">
-                                <option value="">All Categories</option>
-                                {% for cat in categories %}
-                                    <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat }}</option>
-                                {% endfor %}
-                            </select>
-                            <select class="form-select" style="max-width: 220px;" id="sortFilter">
-                                <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest First</option>
-                                <option value="price_low" {% if sort == 'price_low' %}selected{% endif %}>Price: Low to High</option>
-                                <option value="price_high" {% if sort == 'price_high' %}selected{% endif %}>Price: High to Low</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="row">
                     {% if products %}
                         {% for p in products %}
@@ -197,30 +253,5 @@
 
     {% include 'footer.html' %}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Handle category filter change
-        document.getElementById('categoryFilter').addEventListener('change', function() {
-            const category = this.value;
-            const sort = document.getElementById('sortFilter').value;
-            const search = '{{ search }}';
-            let url = '{{ url_for("products") }}?';
-            if (category) url += 'category=' + encodeURIComponent(category) + '&';
-            if (sort) url += 'sort=' + encodeURIComponent(sort) + '&';
-            if (search) url += 'search=' + encodeURIComponent(search) + '&';
-            window.location.href = url.replace(/&$/, '');
-        });
-
-        // Handle sort filter change
-        document.getElementById('sortFilter').addEventListener('change', function() {
-            const sort = this.value;
-            const category = document.getElementById('categoryFilter').value;
-            const search = '{{ search }}';
-            let url = '{{ url_for("products") }}?';
-            if (category) url += 'category=' + encodeURIComponent(category) + '&';
-            if (sort) url += 'sort=' + encodeURIComponent(sort) + '&';
-            if (search) url += 'search=' + encodeURIComponent(search) + '&';
-            window.location.href = url.replace(/&$/, '');
-        });
-    </script>
 </body>
 </html>

@@ -43,6 +43,8 @@ def ensure_reviews_table():
             title TEXT,
             body TEXT,
             seller_response TEXT,
+            is_approved INTEGER NOT NULL DEFAULT 0,
+            approved_at TEXT,
             created_at TEXT NOT NULL DEFAULT (datetime('now')),
             FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE CASCADE,
             FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -151,6 +153,14 @@ def ensure_additional_tables():
         cur.execute("ALTER TABLE reviews ADD COLUMN seller_response TEXT")
     except:
         pass
+    try:
+        cur.execute("ALTER TABLE reviews ADD COLUMN is_approved INTEGER NOT NULL DEFAULT 0")
+    except:
+        pass
+    try:
+        cur.execute("ALTER TABLE reviews ADD COLUMN approved_at TEXT")
+    except:
+        pass
     
     conn.commit()
     conn.close()
@@ -244,7 +254,7 @@ def index():
         SELECT p.id, p.title, p.description, p.price, p.stock, p.created_at, p.seller_id, p.image_url, u.business_name, u.rating, u.username AS seller_username
         FROM products p 
         LEFT JOIN users u ON p.seller_id = u.id 
-        ORDER BY p.created_at DESC LIMIT 6
+        ORDER BY p.created_at DESC LIMIT 12
     """)
     featured = cur.fetchall()
     
@@ -413,14 +423,14 @@ def product_detail(product_id):
         SELECT r.id, r.rating, r.title, r.body, r.seller_response, r.created_at, u.username
         FROM reviews r
         JOIN users u ON r.user_id = u.id
-        WHERE r.product_id = ?
+        WHERE r.product_id = ? AND r.is_approved = 1
         ORDER BY r.created_at DESC
         """,
         (product_id,)
     )
     reviews = cur.fetchall()
 
-    cur.execute("SELECT COUNT(*) AS c, AVG(rating) AS avg_rating FROM reviews WHERE product_id = ?", (product_id,))
+    cur.execute("SELECT COUNT(*) AS c, AVG(rating) AS avg_rating FROM reviews WHERE product_id = ? AND is_approved = 1", (product_id,))
     stats = cur.fetchone()
     
     # Related products (same category)
@@ -1022,11 +1032,81 @@ def admin_index():
         SELECT
           (SELECT COUNT(*) FROM products) AS products_count,
           (SELECT COUNT(*) FROM users) AS users_count,
-          (SELECT COUNT(*) FROM orders) AS orders_count
+          (SELECT COUNT(*) FROM orders) AS orders_count,
+          (SELECT COUNT(*) FROM reviews WHERE is_approved = 0) AS pending_reviews,
+          (SELECT COUNT(*) FROM reviews WHERE is_approved = 1) AS approved_reviews,
+          (SELECT COUNT(*) FROM reviews) AS total_reviews
     """)
     stats = cur.fetchone()
     conn.close()
     return render_template('admin/dashboard.html', stats=stats)
+
+@app.route('/admin/reviews')
+@admin_required
+def admin_reviews():
+    filter_status = request.args.get('status', 'pending')  # pending, approved, all
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    if filter_status == 'pending':
+        query = """
+            SELECT r.id, r.rating, r.title, r.body, r.created_at,
+                   u.username as reviewer_name,
+                   p.id as product_id, p.name as product_name
+            FROM reviews r
+            JOIN users u ON r.user_id = u.id
+            JOIN products p ON r.product_id = p.id
+            WHERE r.is_approved = 0
+            ORDER BY r.created_at DESC
+        """
+    elif filter_status == 'approved':
+        query = """
+            SELECT r.id, r.rating, r.title, r.body, r.created_at, r.approved_at,
+                   u.username as reviewer_name,
+                   p.id as product_id, p.name as product_name
+            FROM reviews r
+            JOIN users u ON r.user_id = u.id
+            JOIN products p ON r.product_id = p.id
+            WHERE r.is_approved = 1
+            ORDER BY r.approved_at DESC
+        """
+    else:  # all
+        query = """
+            SELECT r.id, r.rating, r.title, r.body, r.created_at, r.approved_at, r.is_approved,
+                   u.username as reviewer_name,
+                   p.id as product_id, p.name as product_name
+            FROM reviews r
+            JOIN users u ON r.user_id = u.id
+            JOIN products p ON r.product_id = p.id
+            ORDER BY r.created_at DESC
+        """
+    
+    cur.execute(query)
+    reviews = cur.fetchall()
+    conn.close()
+    return render_template('admin/reviews.html', reviews=reviews, filter_status=filter_status)
+
+@app.route('/admin/reviews/<int:review_id>/approve', methods=['POST'])
+@admin_required
+def admin_review_approve(review_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("UPDATE reviews SET is_approved = 1, approved_at = datetime('now') WHERE id = ?", (review_id,))
+    conn.commit()
+    conn.close()
+    flash('Review approved successfully.')
+    return redirect(url_for('admin_reviews'))
+
+@app.route('/admin/reviews/<int:review_id>/reject', methods=['POST'])
+@admin_required
+def admin_review_reject(review_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM reviews WHERE id = ?", (review_id,))
+    conn.commit()
+    conn.close()
+    flash('Review rejected and deleted.')
+    return redirect(url_for('admin_reviews'))
 
 
 @app.route('/admin/orders')

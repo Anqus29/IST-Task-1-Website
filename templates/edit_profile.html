@@ -26,6 +26,52 @@
       padding-bottom: 10px;
       border-bottom: 2px solid #e9ecef;
     }
+
+    /* Mobile Responsive Styles */
+    .form-control,
+    .form-select,
+    .btn {
+      min-height: 44px;
+    }
+
+    @media (max-width: 768px) {
+      .settings-header {
+        padding: 20px;
+      }
+
+      .settings-header h1 {
+        font-size: 1.75rem;
+      }
+
+      .settings-header svg {
+        width: 30px;
+        height: 30px;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .container.my-5 {
+        margin-top: 1rem !important;
+        margin-bottom: 1rem !important;
+      }
+
+      .card-body.p-4 {
+        padding: 1rem !important;
+      }
+
+      .settings-header {
+        padding: 15px;
+      }
+
+      .settings-header h1 {
+        font-size: 1.5rem;
+      }
+
+      .btn {
+        width: 100%;
+        margin-bottom: 10px;
+      }
+    }
   </style>
 </head>
 <body>

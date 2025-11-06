@@ -18,11 +18,6 @@
             color: var(--text-color);
         }
 
-        .navbar {
-            background-color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
         .hero-section {
             background: white;
             padding: 60px 0;
@@ -124,6 +119,74 @@
             font-size: 1rem;
             margin-top: 5px;
         }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .hero-section {
+                padding: 40px 0;
+            }
+
+            .display-4 {
+                font-size: 2rem;
+            }
+
+            .lead {
+                font-size: 1rem;
+            }
+
+            .btn-lg {
+                font-size: 1rem;
+                padding: 0.5rem 1rem;
+            }
+
+            .stat-number {
+                font-size: 2rem;
+            }
+
+            .stat-label {
+                font-size: 0.9rem;
+            }
+
+            .category-card {
+                margin-bottom: 15px;
+            }
+
+            .listing-card {
+                padding: 12px;
+            }
+
+            .price {
+                font-size: 1.1rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .hero-section {
+                padding: 30px 0;
+            }
+
+            .display-4 {
+                font-size: 1.75rem;
+            }
+
+            .d-flex.gap-3 {
+                flex-direction: column;
+                gap: 10px !important;
+            }
+
+            .d-flex.gap-3 .btn {
+                width: 100%;
+            }
+
+            .stat-number {
+                font-size: 1.75rem;
+            }
+
+            .stats-section,
+            .container > .row {
+                padding: 20px 10px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -135,6 +198,20 @@
                 <div class="col-md-8 text-center">
                     <h1 class="display-4 mb-4">Buy and Sell in Your Local Community</h1>
                     <p class="lead mb-4">Find great deals from local sellers or list your own items for sale.</p>
+                    
+                    <!-- Search Bar -->
+                    <form action="{{ url_for('products') }}" method="get" class="mb-4">
+                        <div class="input-group input-group-lg" style="max-width: 600px; margin: 0 auto;">
+                            <input name="search" class="form-control" type="search" placeholder="Search for items..." aria-label="Search" value="{{ request.args.get('search','') }}">
+                            <button class="btn btn-primary" type="submit">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                                </svg>
+                                Search
+                            </button>
+                        </div>
+                    </form>
+                    
                     <div class="d-flex justify-content-center gap-3">
                         <a href="{{ url_for('products') }}" class="btn btn-primary btn-lg">Browse Listings</a>
                         {% if current_user_is_seller %}
@@ -148,35 +225,104 @@
         </div>
     </div>
 
-    <!-- Stats Section -->
     <div class="container">
-        <div class="stats-section">
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="stat-item">
-                        <div class="stat-number">{{ stats['active_listings'] if stats else '0' }}</div>
-                        <div class="stat-label">Active Listings</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="stat-item">
-                        <div class="stat-number">{{ stats['total_sellers'] if stats else '0' }}</div>
-                        <div class="stat-label">Trusted Sellers</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="stat-item">
-                        <div class="stat-number">{{ stats['total_users'] if stats else '0' }}+</div>
-                        <div class="stat-label">Community Members</div>
-                    </div>
-                </div>
+        <!-- Featured Listings Section -->
+        <h2 class="mb-4 mt-5">Featured Listings</h2>
+        
+        {% if featured_products and featured_products|length > 0 %}
+        <!-- Carousel -->
+        <style>
+            #featuredCarousel .carousel-control-prev {
+                left: -60px;
+            }
+            #featuredCarousel .carousel-control-next {
+                right: -60px;
+            }
+            #featuredCarousel .carousel-control-prev-icon,
+            #featuredCarousel .carousel-control-next-icon {
+                background-color: rgba(0, 0, 0, 0.5);
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                padding: 8px;
+            }
+            @media (max-width: 768px) {
+                #featuredCarousel .carousel-control-prev {
+                    left: 0;
+                }
+                #featuredCarousel .carousel-control-next {
+                    right: 0;
+                }
+            }
+        </style>
+        <div id="featuredCarousel" class="carousel slide mb-5" data-bs-ride="carousel">
+            <div class="carousel-indicators">
+                {% for i in range(0, featured_products|length, 3) %}
+                <button type="button" data-bs-target="#featuredCarousel" data-bs-slide-to="{{ loop.index0 }}" {% if loop.first %}class="active" aria-current="true"{% endif %} aria-label="Slide {{ loop.index }}"></button>
+                {% endfor %}
             </div>
+            <div class="carousel-inner">
+                {% for i in range(0, featured_products|length, 3) %}
+                <div class="carousel-item {% if loop.first %}active{% endif %}">
+                    <div class="row g-3">
+                        {% for p in featured_products[i:i+3] %}
+                        <div class="col-md-4">
+                            <a href="{{ url_for('product_detail', product_id=p['id']) }}" class="text-decoration-none" style="color: inherit;">
+                                <div class="listing-card position-relative h-100" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(0,0,0,0.15)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)';">
+                                    {% if p['stock'] is not none and p['stock'] == 0 %}
+                                        <span class="out-of-stock-badge">Out of Stock</span>
+                                    {% endif %}
+                                    
+                                    <!-- Product Image -->
+                                    <div class="text-center mb-3" style="background: #f8f9fa; border-radius: 8px; padding: 15px; height: 250px; display: flex; align-items: center; justify-content: center;">
+                                        {% if 'image_url' in p.keys() and p['image_url'] %}
+                                            {% set img = p['image_url'] %}
+                                            {% if img.startswith('http://') or img.startswith('https://') or img.startswith('/') %}
+                                                <img src="{{ img }}" alt="{{ p['title'] }}" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                                            {% else %}
+                                                <img src="{{ url_for('static', filename='img/' ~ img) }}" alt="{{ p['title'] }}" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                                            {% endif %}
+                                        {% else %}
+                                            <img src="https://via.placeholder.com/400x250/e9ecef/6c757d?text={{ p['title'][:20] }}" alt="{{ p['title'] }}" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <h5 class="mb-2">{{ p['title'][:50] }}{% if p['title']|length > 50 %}...{% endif %}</h5>
+                                    <p class="price mb-2">${{ '%.2f'|format(p['price']) }}</p>
+                                    {% if p['description'] %}
+                                        <p class="text-muted small mb-2">{{ p['description'][:80] }}{% if p['description']|length > 80 %}...{% endif %}</p>
+                                    {% endif %}
+                                    <div class="seller-info mb-2">
+                                        <span class="seller-name">{{ p['business_name'] or p['seller_username'] or 'Seller' }}</span>
+                                        {% if p['rating'] %}
+                                            <span class="rating">★ {{ '%.1f'|format(p['rating']) }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#featuredCarousel" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Previous</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#featuredCarousel" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Next</span>
+            </button>
         </div>
-    </div>
+        {% else %}
+        <div class="text-center">
+            <p>No featured listings available.</p>
+        </div>
+        {% endif %}
 
-    <div class="container">
         <!-- Popular Categories Section -->
-        <div class="mb-5">
+        <div class="my-5">
             <h3 class="mb-4 text-center">Browse by Category</h3>
             <div class="row row-cols-2 row-cols-md-3 row-cols-lg-6 g-3">
                 <div class="col">
@@ -253,129 +399,76 @@
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- How It Works Section -->
-        <div class="my-5 py-5" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px;">
-            <div class="container">
-                <h3 class="mb-4 text-center text-white">How It Works</h3>
-                <div class="row g-4">
-                    <div class="col-md-4">
-                        <div class="text-center text-white">
-                            <div class="mb-3">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
-                                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
-                                </svg>
-                            </div>
-                            <h5>1. Browse Listings</h5>
-                            <p>Search through thousands of local listings or browse by category</p>
-                        </div>
+    <!-- Stats Section -->
+    <div class="container">
+        <div class="stats-section">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="stat-item">
+                        <div class="stat-number">{{ stats['active_listings'] if stats else '0' }}</div>
+                        <div class="stat-label">Active Listings</div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="text-center text-white">
-                            <div class="mb-3">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-chat-dots" viewBox="0 0 16 16">
-                                    <path d="M5 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
-                                    <path d="m2.165 15.803.02-.004c1.83-.363 2.948-.842 3.468-1.105A9.06 9.06 0 0 0 8 15c4.418 0 8-3.134 8-7s-3.582-7-8-7-8 3.134-8 7c0 1.76.743 3.37 1.97 4.6a10.437 10.437 0 0 1-.524 2.318l-.003.011a10.722 10.722 0 0 1-.244.637c-.079.186.074.394.273.362a21.673 21.673 0 0 0 .693-.125zm.8-3.108a1 1 0 0 0-.287-.801C1.618 10.83 1 9.468 1 8c0-3.192 3.004-6 7-6s7 2.808 7 6c0 3.193-3.004 6-7 6a8.06 8.06 0 0 1-2.088-.272 1 1 0 0 0-.711.074c-.387.196-1.24.57-2.634.893a10.97 10.97 0 0 0 .398-2z"/>
-                                </svg>
-                            </div>
-                            <h5>2. Connect with Sellers</h5>
-                            <p>Message sellers, ask questions, and arrange safe meetups</p>
-                        </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-item">
+                        <div class="stat-number">{{ stats['total_sellers'] if stats else '0' }}</div>
+                        <div class="stat-label">Trusted Sellers</div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="text-center text-white">
-                            <div class="mb-3">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-bag-check" viewBox="0 0 16 16">
-                                    <path fill-rule="evenodd" d="M10.854 8.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 0 1 .708-.708L7.5 10.793l2.646-2.647a.5.5 0 0 1 .708 0z"/>
-                                    <path d="M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1zm3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4h-3.5zM2 5h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5z"/>
-                                </svg>
-                            </div>
-                            <h5>3. Complete the Deal</h5>
-                            <p>Buy or sell items safely in your local community</p>
-                        </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-item">
+                        <div class="stat-number">{{ stats['total_users'] if stats else '0' }}+</div>
+                        <div class="stat-label">Community Members</div>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <h2 class="mb-4">Featured Listings</h2>
-        
-        {% if featured_products and featured_products|length > 0 %}
-        <!-- Carousel -->
-        <div id="featuredCarousel" class="carousel slide mb-5" data-bs-ride="carousel">
-            <div class="carousel-indicators">
-                {% for p in featured_products %}
-                <button type="button" data-bs-target="#featuredCarousel" data-bs-slide-to="{{ loop.index0 }}" {% if loop.first %}class="active" aria-current="true"{% endif %} aria-label="Slide {{ loop.index }}"></button>
-                {% endfor %}
-            </div>
-            <div class="carousel-inner">
-                {% for p in featured_products %}
-                <div class="carousel-item {% if loop.first %}active{% endif %}">
-                    <div class="row justify-content-center">
-                        <div class="col-md-8">
-                            <div class="listing-card position-relative">
-                                {% if p['stock'] is not none and p['stock'] == 0 %}
-                                    <span class="out-of-stock-badge">Out of Stock</span>
-                                {% endif %}
-                                
-                                <div class="row g-3">
-                                    <div class="col-md-5">
-                                        <!-- Product Image -->
-                                        <div class="text-center">
-                                            {% if 'image_url' in p.keys() and p['image_url'] %}
-                                                {% set img = p['image_url'] %}
-                                                {% if img.startswith('http://') or img.startswith('https://') or img.startswith('/') %}
-                                                    <img src="{{ img }}" alt="{{ p['title'] }}" style="max-height:280px; width:100%; object-fit:contain; background:#fff; border:1px solid #eee; padding:10px; border-radius:5px;">
-                                                {% else %}
-                                                    <img src="{{ url_for('static', filename='img/' ~ img) }}" alt="{{ p['title'] }}" style="max-height:280px; width:100%; object-fit:contain; background:#fff; border:1px solid #eee; padding:10px; border-radius:5px;">
-                                                {% endif %}
-                                            {% else %}
-                                                <img src="https://via.placeholder.com/400x280/e9ecef/6c757d?text={{ p['title'][:20] }}" alt="{{ p['title'] }}" style="max-height:280px; width:100%; object-fit:contain; border:1px solid #eee; padding:10px; border-radius:5px;">
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                    <div class="col-md-7">
-                                        <h3>{{ p['title'] }}</h3>
-                                        <p class="price">${{ '%.2f'|format(p['price']) }}</p>
-                                        {% if p['description'] %}
-                                            <p class="text-muted">{{ p['description'][:150] }}{% if p['description']|length > 150 %}...{% endif %}</p>
-                                        {% endif %}
-                                        <div class="seller-info mt-2">
-                                            <a href="{{ url_for('seller_profile', seller_id=p['seller_id']) }}" class="text-decoration-none">
-                                                <span class="seller-name">{{ p['business_name'] or p['seller_username'] or 'Seller' }}</span>
-                                                {% if p['rating'] %}
-                                                    <span class="rating">★ {{ '%.1f'|format(p['rating']) }}</span>
-                                                {% endif %}
-                                            </a>
-                                        </div>
-                                        <div class="mt-3">
-                                            <a href="{{ url_for('product_detail', product_id=p['id']) }}" class="btn btn-primary">View Details</a>
-                                        </div>
-                                        <div class="mt-2">
-                                            <small class="text-muted">Posted {{ (p['created_at'] or '')[:10] }}</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+    <!-- How It Works Section -->
+    <div class="container my-5">
+        <div class="py-5" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px;">
+            <h3 class="mb-4 text-center text-white">How It Works</h3>
+            <div class="row g-4 px-3">
+                <div class="col-md-4">
+                    <div class="text-center text-white">
+                        <div class="mb-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                            </svg>
                         </div>
+                        <h5>1. Browse Listings</h5>
+                        <p>Search through thousands of local listings or browse by category</p>
                     </div>
                 </div>
-                {% endfor %}
+                <div class="col-md-4">
+                    <div class="text-center text-white">
+                        <div class="mb-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-chat-dots" viewBox="0 0 16 16">
+                                <path d="M5 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
+                                <path d="m2.165 15.803.02-.004c1.83-.363 2.948-.842 3.468-1.105A9.06 9.06 0 0 0 8 15c4.418 0 8-3.134 8-7s-3.582-7-8-7-8 3.134-8 7c0 1.76.743 3.37 1.97 4.6a10.437 10.437 0 0 1-.524 2.318l-.003.011a10.722 10.722 0 0 1-.244.637c-.079.186.074.394.273.362a21.673 21.673 0 0 0 .693-.125zm.8-3.108a1 1 0 0 0-.287-.801C1.618 10.83 1 9.468 1 8c0-3.192 3.004-6 7-6s7 2.808 7 6c0 3.193-3.004 6-7 6a8.06 8.06 0 0 1-2.088-.272 1 1 0 0 0-.711.074c-.387.196-1.24.57-2.634.893a10.97 10.97 0 0 0 .398-2z"/>
+                            </svg>
+                        </div>
+                        <h5>2. Connect with Sellers</h5>
+                        <p>Message sellers, ask questions, and arrange safe meetups</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center text-white">
+                        <div class="mb-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-bag-check" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M10.854 8.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 0 1 .708-.708L7.5 10.793l2.646-2.647a.5.5 0 0 1 .708 0z"/>
+                                <path d="M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1zm3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4h-3.5zM2 5h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5z"/>
+                            </svg>
+                        </div>
+                        <h5>3. Complete the Deal</h5>
+                        <p>Buy or sell items safely in your local community</p>
+                    </div>
+                </div>
             </div>
-            <button class="carousel-control-prev" type="button" data-bs-target="#featuredCarousel" data-bs-slide="prev">
-                <span class="carousel-control-prev-icon" aria-hidden="true" style="filter: invert(1);"></span>
-                <span class="visually-hidden">Previous</span>
-            </button>
-            <button class="carousel-control-next" type="button" data-bs-target="#featuredCarousel" data-bs-slide="next">
-                <span class="carousel-control-next-icon" aria-hidden="true" style="filter: invert(1);"></span>
-                <span class="visually-hidden">Next</span>
-            </button>
         </div>
-        {% else %}
-        <div class="text-center">
-            <p>No featured listings available.</p>
-        </div>
-        {% endif %}
     </div>
 
     <!-- Recently Viewed Section -->

@@ -57,6 +57,58 @@
       margin-bottom: 10px;
       text-align: left;
     }
+
+    /* Mobile Responsive Styles */
+    @media (max-width: 768px) {
+      .sidebar-fixed {
+        position: static;
+        margin-bottom: 20px;
+      }
+
+      .stat-number {
+        font-size: 2rem;
+      }
+
+      .stat-label {
+        font-size: 0.85rem;
+      }
+
+      .table {
+        font-size: 0.85rem;
+      }
+
+      .table td,
+      .table th {
+        padding: 0.5rem;
+      }
+
+      .category-card {
+        margin-bottom: 15px;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .stat-number {
+        font-size: 1.75rem;
+      }
+
+      h1 {
+        font-size: 1.75rem;
+      }
+
+      h2 {
+        font-size: 1.5rem;
+      }
+
+      .btn {
+        font-size: 0.85rem;
+      }
+
+      /* Make tables responsive */
+      .table-responsive {
+        overflow-x: auto;
+      }
+    }
   </style>
 </head>
 <body>
