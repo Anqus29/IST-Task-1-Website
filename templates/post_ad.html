@@ -89,20 +89,85 @@
                             <div class="form-help">Provide detailed information to attract buyers</div>
                         </div>
 
+                        <!-- Listing Type Selection -->
+                        <div class="mb-4">
+                            <label class="form-label">Listing Type</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="listing_type" id="regular_listing" value="regular" checked onchange="toggleListingType()">
+                                <label class="form-check-label" for="regular_listing">
+                                    <strong>Regular Listing</strong> - Sell at a fixed price
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="is_auction" id="auction_listing" onchange="toggleListingType()">
+                                <label class="form-check-label" for="auction_listing">
+                                    <strong>🔨 Auction (One-of-a-Kind)</strong> - Let buyers bid on your unique item
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Regular Listing Fields -->
+                        <div id="regular_fields">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="price" class="form-label">Price ($) <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="price" name="price" min="0" step="0.01" placeholder="0.00">
+                                    <div class="form-help">Set a competitive price</div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="stock" class="form-label">Quantity <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="stock" name="stock" min="0" value="1">
+                                    <div class="form-help">How many do you have?</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Auction Fields -->
+                        <div id="auction_fields" style="display: none;">
+                            <div class="alert alert-warning">
+                                <strong>ℹ️ Auction Items:</strong> Auctions are for one-of-a-kind items only. Quantity is automatically set to 1.
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="starting_bid" class="form-label">Starting Bid ($) <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="starting_bid" name="starting_bid" min="0.01" step="0.01" placeholder="0.00">
+                                    <div class="form-help">Minimum bid to start the auction</div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="auction_duration" class="form-label">Duration (Days) <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="auction_duration" name="auction_duration">
+                                        <option value="1">1 Day</option>
+                                        <option value="3">3 Days</option>
+                                        <option value="5">5 Days</option>
+                                        <option value="7" selected>7 Days</option>
+                                        <option value="10">10 Days</option>
+                                        <option value="14">14 Days</option>
+                                        <option value="30">30 Days</option>
+                                    </select>
+                                    <div class="form-help">How long the auction will run</div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="reserve_price" class="form-label">Reserve Price ($) <small class="text-muted">(Optional)</small></label>
+                                    <input type="number" class="form-control" id="reserve_price" name="reserve_price" min="0" step="0.01" placeholder="Leave blank for no reserve">
+                                    <div class="form-help">Minimum price you'll accept (hidden from bidders)</div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="buy_now_price" class="form-label">Buy Now Price ($) <small class="text-muted">(Optional)</small></label>
+                                    <input type="number" class="form-control" id="buy_now_price" name="buy_now_price" min="0" step="0.01" placeholder="Leave blank to disable">
+                                    <div class="form-help">Instant win price - ends auction immediately</div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label for="price" class="form-label">Price ($) <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control" id="price" name="price" min="0" step="0.01" required placeholder="0.00">
-                                <div class="form-help">Set a competitive price</div>
-                            </div>
-
-                            <div class="col-md-4 mb-3">
-                                <label for="stock" class="form-label">Quantity <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control" id="stock" name="stock" min="0" value="1" required>
-                                <div class="form-help">How many do you have?</div>
-                            </div>
-
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-12 mb-3">
                                 <label for="category" class="form-label">Category <span class="text-danger">*</span></label>
                                 <select class="form-select" id="category" name="category" required>
                                     <option value="Other">Other</option>
@@ -162,21 +227,72 @@
     {% include 'footer.html' %}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Toggle between regular and auction listing types
+        function toggleListingType() {
+            const isAuction = document.getElementById('auction_listing').checked;
+            const regularFields = document.getElementById('regular_fields');
+            const auctionFields = document.getElementById('auction_fields');
+            
+            if (isAuction) {
+                regularFields.style.display = 'none';
+                auctionFields.style.display = 'block';
+                // Make auction fields required
+                document.getElementById('starting_bid').required = true;
+                // Make regular fields not required
+                document.getElementById('price').required = false;
+                document.getElementById('stock').required = false;
+            } else {
+                regularFields.style.display = 'block';
+                auctionFields.style.display = 'none';
+                // Make regular fields required
+                document.getElementById('price').required = true;
+                document.getElementById('stock').required = true;
+                // Make auction fields not required
+                document.getElementById('starting_bid').required = false;
+            }
+        }
+
         // Form validation
         document.getElementById('postAdForm').addEventListener('submit', function(e) {
-            const price = parseFloat(document.getElementById('price').value);
-            const stock = parseInt(document.getElementById('stock').value);
+            const isAuction = document.getElementById('auction_listing').checked;
             
-            if (price < 0) {
-                e.preventDefault();
-                alert('Price cannot be negative');
-                return false;
-            }
-            
-            if (stock < 0) {
-                e.preventDefault();
-                alert('Quantity cannot be negative');
-                return false;
+            if (isAuction) {
+                const startingBid = parseFloat(document.getElementById('starting_bid').value);
+                const reservePrice = document.getElementById('reserve_price').value ? parseFloat(document.getElementById('reserve_price').value) : null;
+                const buyNowPrice = document.getElementById('buy_now_price').value ? parseFloat(document.getElementById('buy_now_price').value) : null;
+                
+                if (startingBid <= 0) {
+                    e.preventDefault();
+                    alert('Starting bid must be greater than 0');
+                    return false;
+                }
+                
+                if (reservePrice && reservePrice < startingBid) {
+                    e.preventDefault();
+                    alert('Reserve price must be greater than or equal to starting bid');
+                    return false;
+                }
+                
+                if (buyNowPrice && buyNowPrice < startingBid) {
+                    e.preventDefault();
+                    alert('Buy Now price must be greater than or equal to starting bid');
+                    return false;
+                }
+            } else {
+                const price = parseFloat(document.getElementById('price').value);
+                const stock = parseInt(document.getElementById('stock').value);
+                
+                if (price < 0) {
+                    e.preventDefault();
+                    alert('Price cannot be negative');
+                    return false;
+                }
+                
+                if (stock < 0) {
+                    e.preventDefault();
+                    alert('Quantity cannot be negative');
+                    return false;
+                }
             }
             
             return true;

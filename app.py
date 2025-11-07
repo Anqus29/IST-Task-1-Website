@@ -1,23 +1,39 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_file
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_file, make_response
 from functools import wraps
-import sqlite3
 import os
+import json
 from decimal import Decimal
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import timedelta
+from datetime import timedelta, datetime
+from sqlalchemy import func, desc, distinct, or_
+from sqlalchemy.exc import IntegrityError
+
+# Import models and db
+from models import db, User, Product, Order, OrderItem, Review, Favorite, Notification, \
+    PasswordResetToken, ProductReport, ProductView, Address, Bid
 
 
 app = Flask(__name__)
 app.secret_key = "change_this_to_a_random_secret"
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # Auto-logout after 30 min
+# Prefer HTTPS when building absolute URLs (can override via env)
+app.config['PREFERRED_URL_SCHEME'] = os.environ.get('PREFERRED_URL_SCHEME', 'http')
+# Optionally pin a canonical server name for absolute URL generation (off by default)
+if os.environ.get('SERVER_NAME'):
+    app.config['SERVER_NAME'] = os.environ['SERVER_NAME']
 
+# SQLAlchemy configuration
 DB_PATH = os.path.join(os.path.dirname(__file__), "webstore.db")
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ECHO'] = False  # Set to True for SQL debugging
 
-def get_db_connection(path=DB_PATH):
-    conn = sqlite3.connect(path)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON;")
-    return conn
+# Initialize SQLAlchemy
+db.init_app(app)
+
+# Create tables on first run
+with app.app_context():
+    db.create_all()
 
 def is_strong_password(pw: str) -> bool:
     """Basic strong password policy: at least 8 chars, with lower, upper, digit, and special."""
@@ -29,166 +45,40 @@ def is_strong_password(pw: str) -> bool:
     has_special = any(not c.isalnum() for c in pw)
     return has_lower and has_upper and has_digit and has_special
 
-def ensure_reviews_table():
-    """Create reviews table if it does not exist (safe to call at startup)."""
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS reviews (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            product_id INTEGER NOT NULL,
-            user_id INTEGER NOT NULL,
-            rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5),
-            title TEXT,
-            body TEXT,
-            seller_response TEXT,
-            is_approved INTEGER NOT NULL DEFAULT 0,
-            approved_at TEXT,
-            created_at TEXT NOT NULL DEFAULT (datetime('now')),
-            FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE CASCADE,
-            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
-            UNIQUE(product_id, user_id)
-        )
-        """
-    )
-    conn.commit()
-    conn.close()
-
-def ensure_additional_tables():
-    """Create additional feature tables if they don't exist."""
-    conn = get_db_connection()
-    cur = conn.cursor()
-    
-    # Favorites/wishlist
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS favorites (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            product_id INTEGER NOT NULL,
-            created_at TEXT NOT NULL DEFAULT (datetime('now')),
-            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
-            FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE CASCADE,
-            UNIQUE(user_id, product_id)
-        )
-    """)
-    
-    # Notifications
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS notifications (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            message TEXT NOT NULL,
-            link TEXT,
-            is_read INTEGER NOT NULL DEFAULT 0,
-            created_at TEXT NOT NULL DEFAULT (datetime('now')),
-            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
-        )
-    """)
-    
-    # Password reset tokens
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS password_reset_tokens (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            token TEXT NOT NULL UNIQUE,
-            expires_at TEXT NOT NULL,
-            created_at TEXT NOT NULL DEFAULT (datetime('now')),
-            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
-        )
-    """)
-    
-    # Product reports
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS product_reports (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            product_id INTEGER NOT NULL,
-            reporter_id INTEGER NOT NULL,
-            reason TEXT NOT NULL,
-            status TEXT NOT NULL DEFAULT 'pending',
-            created_at TEXT NOT NULL DEFAULT (datetime('now')),
-            FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE CASCADE,
-            FOREIGN KEY(reporter_id) REFERENCES users(id) ON DELETE CASCADE
-        )
-    """)
-    
-    # Recently viewed
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS product_views (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            product_id INTEGER NOT NULL,
-            viewed_at TEXT NOT NULL DEFAULT (datetime('now')),
-            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
-            FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE CASCADE
-        )
-    """)
-    
-    # Add new columns to existing tables if they don't exist
-    try:
-        cur.execute("ALTER TABLE users ADD COLUMN is_verified INTEGER NOT NULL DEFAULT 0")
-    except:
-        pass
-    try:
-        cur.execute("ALTER TABLE users ADD COLUMN profile_picture TEXT")
-    except:
-        pass
-    try:
-        cur.execute("ALTER TABLE products ADD COLUMN condition TEXT DEFAULT 'used'")
-    except:
-        pass
-    try:
-        cur.execute("ALTER TABLE products ADD COLUMN location TEXT")
-    except:
-        pass
-    try:
-        cur.execute("ALTER TABLE products ADD COLUMN view_count INTEGER DEFAULT 0")
-    except:
-        pass
-    try:
-        cur.execute("ALTER TABLE orders ADD COLUMN refund_status TEXT")
-    except:
-        pass
-    try:
-        cur.execute("ALTER TABLE reviews ADD COLUMN seller_response TEXT")
-    except:
-        pass
-    try:
-        cur.execute("ALTER TABLE reviews ADD COLUMN is_approved INTEGER NOT NULL DEFAULT 0")
-    except:
-        pass
-    try:
-        cur.execute("ALTER TABLE reviews ADD COLUMN approved_at TEXT")
-    except:
-        pass
-    
-    conn.commit()
-    conn.close()
-
-# Ensure DB has reviews table
-ensure_reviews_table()
-ensure_additional_tables()
-
 def ensure_cart():
-    if 'cart' not in session:
-        session['cart'] = {}
+    """Get cart from session, falling back to cookie if session is empty"""
+    if 'cart' not in session or not session['cart']:
+        # Try to load from cookie
+        cart_cookie = request.cookies.get('cart')
+        if cart_cookie:
+            try:
+                session['cart'] = json.loads(cart_cookie)
+            except (json.JSONDecodeError, ValueError):
+                session['cart'] = {}
+        else:
+            session['cart'] = {}
     return session['cart']
+
+def save_cart_to_cookie(response, cart):
+    """Save cart to cookie for persistence"""
+    # Convert cart to JSON and save as cookie (expires in 30 days)
+    cart_json = json.dumps(cart)
+    response.set_cookie('cart', cart_json, max_age=30*24*60*60, httponly=True, samesite='Lax')
+    return response
 
 def cart_total_items_and_amount(cart):
     total_items = 0
     total_amount = Decimal("0.00")
     if not cart:
         return total_items, total_amount
-    conn = get_db_connection()
-    cur = conn.cursor()
+    
     ids = list(cart.keys())
-    placeholders = ",".join("?" for _ in ids)
-    cur.execute(f"SELECT id, price FROM products WHERE id IN ({placeholders})", ids)
-    rows = {str(r["id"]): Decimal(str(r["price"])) for r in cur.fetchall()}
-    conn.close()
+    products = Product.query.filter(Product.id.in_(ids)).all()
+    product_prices = {str(p.id): Decimal(str(p.price)) for p in products}
+    
     for pid, qty in cart.items():
         total_items += qty
-        price = rows.get(str(pid), Decimal("0.00"))
+        price = product_prices.get(str(pid), Decimal("0.00"))
         total_amount += price * qty
     return total_items, total_amount
 
@@ -204,23 +94,29 @@ def login_required(f):
 @app.context_processor
 def inject_user_permissions():
     """Inject helpers into templates: current_user_is_admin and current_user_is_seller
+    Also inject cart_item_count for navbar
     """
     uid = session.get('user_id')
     is_admin_flag = False
     is_seller_flag = False
     if uid:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT username, is_admin, is_seller FROM users WHERE id = ?", (uid,))
-        u = cur.fetchone()
-        conn.close()
-        if u:
+        user = User.query.get(uid)
+        if user:
             allowed_admin_username = 'Bean'
-            if (u['username'] and u['username'].strip().lower() == allowed_admin_username.strip().lower()) or u['is_admin']:
+            if (user.username and user.username.strip().lower() == allowed_admin_username.strip().lower()) or user.is_admin:
                 is_admin_flag = True
-            if u['is_seller']:
+            if user.is_seller:
                 is_seller_flag = True
-    return {'current_user_is_admin': is_admin_flag, 'current_user_is_seller': is_seller_flag}
+    
+    # Get cart item count from session/cookie
+    cart = ensure_cart()
+    cart_item_count = sum(cart.values()) if cart else 0
+    
+    return {
+        'current_user_is_admin': is_admin_flag, 
+        'current_user_is_seller': is_seller_flag,
+        'cart_item_count': cart_item_count
+    }
 
 
 def admin_required(f):
@@ -230,16 +126,12 @@ def admin_required(f):
         uid = session.get('user_id')
         if not uid:
             return redirect(url_for('login', next=request.path))
-        conn = get_db_connection()
-        cur = conn.cursor()
-        # fetch both username and is_admin flag so toggling is_admin grants access
-        cur.execute("SELECT username, is_admin FROM users WHERE id = ?", (uid,))
-        u = cur.fetchone()
-        conn.close()
+        
+        user = User.query.get(uid)
         # allow either the special username or any user with is_admin truthy
-        allowed_admin_username = 'Bean'
-        has_name_match = bool(u and u['username'] and u['username'].strip().lower() == allowed_admin_username.strip().lower())
-        has_admin_flag = bool(u and u['is_admin'])
+        allowed_admin_username = 'Briscoe'
+        has_name_match = bool(user and user.username and user.username.strip().lower() == allowed_admin_username.strip().lower())
+        has_admin_flag = bool(user and user.is_admin)
         if not (has_name_match or has_admin_flag):
             flash("Admin access required.")
             return redirect(url_for('index'))
@@ -248,40 +140,38 @@ def admin_required(f):
 
 @app.route('/')
 def index():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT p.id, p.title, p.description, p.price, p.stock, p.created_at, p.seller_id, p.image_url, u.business_name, u.rating, u.username AS seller_username
-        FROM products p 
-        LEFT JOIN users u ON p.seller_id = u.id 
-        ORDER BY p.created_at DESC LIMIT 12
-    """)
-    featured = cur.fetchall()
+    # Fetch featured products with seller info
+    featured_raw = db.session.query(
+        Product.id, Product.title, Product.description, Product.price, Product.stock, 
+        Product.created_at, Product.seller_id, Product.image_url, Product.category,
+        User.business_name, User.rating, User.username.label('seller_username')
+    ).outerjoin(User, Product.seller_id == User.id)\
+     .order_by(desc(Product.created_at))\
+     .limit(12)\
+     .all()
+    
+    # Convert to dictionaries for template compatibility
+    featured = [dict(row._mapping) for row in featured_raw]
     
     # Fetch stats
-    cur.execute("""
-        SELECT 
-            (SELECT COUNT(*) FROM products WHERE stock > 0) as active_listings,
-            (SELECT COUNT(DISTINCT seller_id) FROM products) as total_sellers,
-            (SELECT COUNT(*) FROM users) as total_users
-    """)
-    stats = cur.fetchone()
+    stats = {
+        'active_listings': Product.query.filter(Product.stock > 0).count(),
+        'total_sellers': db.session.query(func.count(distinct(Product.seller_id))).scalar() or 0,
+        'total_users': User.query.count()
+    }
     
     # Fetch recently viewed products
     recently_viewed = []
     user_id = session.get('user_id')
     if user_id:
-        cur.execute("""
-            SELECT DISTINCT p.id, p.title, p.price, p.image_url, p.stock
-            FROM product_views pv
-            JOIN products p ON pv.product_id = p.id
-            WHERE pv.user_id = ?
-            ORDER BY pv.viewed_at DESC
-            LIMIT 8
-        """, (user_id,))
-        recently_viewed = cur.fetchall()
+        recently_viewed = db.session.query(Product)\
+            .join(ProductView, ProductView.product_id == Product.id)\
+            .filter(ProductView.user_id == user_id)\
+            .distinct(Product.id)\
+            .order_by(desc(ProductView.viewed_at))\
+            .limit(8)\
+            .all()
     
-    conn.close()
     return render_template('index.html', featured_products=featured, recently_viewed=recently_viewed, stats=stats)
 
 @app.route('/about')
@@ -323,66 +213,54 @@ def products():
     page = int(request.args.get('page', 1))
     per_page = 20
     
-    conn = get_db_connection()
-    cur = conn.cursor()
-    base = """
-     SELECT p.id, p.title, p.description, p.price, p.created_at, 
-         p.stock, p.image_url, p.category, p.condition, u.business_name, u.rating, p.seller_id, u.is_verified
-        FROM products p 
-        LEFT JOIN users u ON p.seller_id = u.id
-    """
-    params = []
-    conditions = []
+    # Build query
+    query = Product.query.join(User, Product.seller_id == User.id, isouter=True)
+    
+    # Apply filters
     if search:
-        conditions.append("(p.title LIKE ? OR p.description LIKE ?)")
-        params.extend([f"%{search}%", f"%{search}%"])
+        query = query.filter(or_(
+            Product.title.like(f'%{search}%'),
+            Product.description.like(f'%{search}%')
+        ))
     if category:
-        conditions.append("p.category = ?")
-        params.append(category)
+        query = query.filter(Product.category == category)
     if condition:
-        conditions.append("p.condition = ?")
-        params.append(condition)
+        query = query.filter(Product.condition == condition)
     if min_price:
         try:
-            conditions.append("p.price >= ?")
-            params.append(float(min_price))
-        except:
+            query = query.filter(Product.price >= float(min_price))
+        except ValueError:
             pass
     if max_price:
         try:
-            conditions.append("p.price <= ?")
-            params.append(float(max_price))
-        except:
+            query = query.filter(Product.price <= float(max_price))
+        except ValueError:
             pass
     
-    where = " WHERE " + " AND ".join(conditions) if conditions else ""
-    
+    # Apply sorting
     if sort == 'price_low':
-        order = " ORDER BY p.price ASC"
+        query = query.order_by(Product.price.asc())
     elif sort == 'price_high':
-        order = " ORDER BY p.price DESC"
+        query = query.order_by(Product.price.desc())
     elif sort == 'popular':
-        order = " ORDER BY p.view_count DESC, p.created_at DESC"
+        query = query.order_by(desc(Product.view_count), desc(Product.created_at))
     else:
-        order = " ORDER BY p.created_at DESC"
+        query = query.order_by(desc(Product.created_at))
     
     # Get total count for pagination
-    cur.execute(f"SELECT COUNT(*) as total FROM products p {where}", params)
-    total = cur.fetchone()['total']
+    total = query.count()
     total_pages = (total + per_page - 1) // per_page
     
     # Get paginated results
     offset = (page - 1) * per_page
-    cur.execute(base + where + order + " LIMIT ? OFFSET ?", params + [per_page, offset])
-    products_list = cur.fetchall()
+    products_list = query.limit(per_page).offset(offset).all()
     
     # Get distinct categories and conditions for filters
-    cur.execute("SELECT DISTINCT category FROM products WHERE category IS NOT NULL ORDER BY category")
-    categories = [row['category'] for row in cur.fetchall()]
+    categories = db.session.query(Product.category).distinct().filter(Product.category.isnot(None)).order_by(Product.category).all()
+    categories = [c[0] for c in categories]
     
     conditions_list = ['new', 'used', 'refurbished']
     
-    conn.close()
     return render_template('products.html', 
                          products=products_list, 
                          search=search, 
@@ -402,73 +280,100 @@ def product_detail(product_id):
     # Track product view
     track_product_view(product_id)
     
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT p.id, p.title, p.description, p.price, p.stock, p.image_url, p.category,
-               u.id AS seller_id, u.business_name, u.seller_description, u.rating, u.is_verified
-        FROM products p
-        LEFT JOIN users u ON p.seller_id = u.id
-        WHERE p.id = ?
-    """, (product_id,))
-    product = cur.fetchone()
+    # Fetch product with seller info
+    product = db.session.query(Product)\
+        .join(User, Product.seller_id == User.id, isouter=True)\
+        .filter(Product.id == product_id)\
+        .first()
+    
     if product is None:
-        conn.close()
         flash("Product not found.")
         return redirect(url_for('products'))
 
-    # Fetch reviews with seller responses
-    cur.execute(
-        """
-        SELECT r.id, r.rating, r.title, r.body, r.seller_response, r.created_at, u.username
-        FROM reviews r
-        JOIN users u ON r.user_id = u.id
-        WHERE r.product_id = ? AND r.is_approved = 1
-        ORDER BY r.created_at DESC
-        """,
-        (product_id,)
-    )
-    reviews = cur.fetchall()
+    # Auction-specific data
+    bid_history = []
+    winning_bid = None
+    user_highest_bid = None
+    is_auction_ended = False
+    time_remaining = None
+    
+    if product.is_auction:
+        # Get bid history
+        bid_history = db.session.query(Bid, User.username)\
+            .join(User, Bid.user_id == User.id)\
+            .filter(Bid.product_id == product_id)\
+            .order_by(desc(Bid.bid_amount))\
+            .limit(10)\
+            .all()
+        
+        # Get winning bid
+        winning_bid = Bid.query.filter_by(product_id=product_id, is_winning=1).first()
+        
+        # Check if auction ended
+        if product.auction_end and product.auction_end <= datetime.utcnow():
+            is_auction_ended = True
+        else:
+            # Calculate time remaining
+            if product.auction_end:
+                time_remaining = product.auction_end - datetime.utcnow()
+        
+        # Get user's highest bid if logged in
+        uid = session.get('user_id')
+        if uid:
+            user_highest_bid = Bid.query.filter_by(product_id=product_id, user_id=uid)\
+                .order_by(desc(Bid.bid_amount))\
+                .first()
 
-    cur.execute("SELECT COUNT(*) AS c, AVG(rating) AS avg_rating FROM reviews WHERE product_id = ? AND is_approved = 1", (product_id,))
-    stats = cur.fetchone()
+    # Fetch reviews with seller responses
+    reviews = db.session.query(Review, User.username)\
+        .join(User, Review.user_id == User.id)\
+        .filter(Review.product_id == product_id, Review.is_approved == 1)\
+        .order_by(desc(Review.created_at))\
+        .all()
+
+    # Get review stats
+    stats = db.session.query(
+        func.count(Review.id).label('c'),
+        func.avg(Review.rating).label('avg_rating')
+    ).filter(Review.product_id == product_id, Review.is_approved == 1).first()
     
     # Related products (same category)
-    cur.execute("""
-        SELECT id, title, price, image_url, stock
-        FROM products
-        WHERE category = ? AND id != ? AND stock > 0
-        ORDER BY RANDOM()
-        LIMIT 4
-    """, (product['category'], product_id))
-    related_products = cur.fetchall()
+    related_products = Product.query\
+        .filter(Product.category == product.category, Product.id != product_id, Product.stock > 0)\
+        .order_by(func.random())\
+        .limit(4)\
+        .all()
     
     # Check if user favorited this
     is_favorited = False
     uid = session.get('user_id')
     if uid:
-        cur.execute("SELECT 1 FROM favorites WHERE user_id = ? AND product_id = ?", (uid, product_id))
-        is_favorited = cur.fetchone() is not None
+        is_favorited = Favorite.query.filter_by(user_id=uid, product_id=product_id).first() is not None
     
     # Determine if current user purchased this product (to allow reviewing)
     can_review = False
     if uid:
-        cur.execute(
-            """
-            SELECT 1
-            FROM orders o
-            JOIN order_items oi ON oi.order_id = o.id
-            WHERE o.buyer_id = ? AND oi.product_id = ?
-            LIMIT 1
-            """,
-            (uid, product_id)
-        )
-        can_review = cur.fetchone() is not None
-    conn.close()
-    review_count = stats["c"] if stats else 0
-    avg_rating = float(stats["avg_rating"]) if stats and stats["avg_rating"] is not None else None
+        can_review = db.session.query(Order)\
+            .join(OrderItem)\
+            .filter(Order.buyer_id == uid, OrderItem.product_id == product_id)\
+            .first() is not None
+    
+    review_count = stats.c if stats else 0
+    avg_rating = float(stats.avg_rating) if stats and stats.avg_rating is not None else None
 
-    return render_template('product_detail.html', product=product, reviews=reviews, review_count=review_count, avg_rating=avg_rating, can_review=can_review, related_products=related_products, is_favorited=is_favorited)
+    return render_template('product_detail.html', 
+                         product=product, 
+                         reviews=reviews, 
+                         review_count=review_count, 
+                         avg_rating=avg_rating, 
+                         can_review=can_review, 
+                         related_products=related_products, 
+                         is_favorited=is_favorited,
+                         bid_history=bid_history,
+                         winning_bid=winning_bid,
+                         user_highest_bid=user_highest_bid,
+                         is_auction_ended=is_auction_ended,
+                         time_remaining=time_remaining)
 
 @app.route('/product/<int:product_id>/review', methods=['POST'])
 @login_required
@@ -489,46 +394,44 @@ def submit_review(product_id):
         return redirect(url_for('product_detail', product_id=product_id))
 
     user_id = session.get('user_id')
-    conn = get_db_connection()
-    cur = conn.cursor()
+    
     # Ensure product exists
-    cur.execute("SELECT id FROM products WHERE id = ?", (product_id,))
-    if not cur.fetchone():
-        conn.close()
+    product = Product.query.get(product_id)
+    if not product:
         flash('Product not found.')
         return redirect(url_for('products'))
 
     # Ensure the user has purchased this product
-    cur.execute(
-        """
-        SELECT 1
-        FROM orders o
-        JOIN order_items oi ON oi.order_id = o.id
-        WHERE o.buyer_id = ? AND oi.product_id = ?
-        LIMIT 1
-        """,
-        (user_id, product_id)
-    )
-    if cur.fetchone() is None:
-        conn.close()
+    has_purchased = db.session.query(Order)\
+        .join(OrderItem)\
+        .filter(Order.buyer_id == user_id, OrderItem.product_id == product_id)\
+        .first() is not None
+    
+    if not has_purchased:
         flash('Only customers who purchased this item can leave a review.')
         return redirect(url_for('product_detail', product_id=product_id))
 
-    # Insert or update the user's review for this product
-    cur.execute(
-        """
-        INSERT INTO reviews (product_id, user_id, rating, title, body)
-        VALUES (?, ?, ?, ?, ?)
-        ON CONFLICT(product_id, user_id) DO UPDATE SET
-            rating=excluded.rating,
-            title=excluded.title,
-            body=excluded.body,
-            created_at=datetime('now')
-        """,
-        (product_id, user_id, rating, title or None, body)
-    )
-    conn.commit()
-    conn.close()
+    # Check if review already exists
+    existing_review = Review.query.filter_by(product_id=product_id, user_id=user_id).first()
+    if existing_review:
+        # Update existing review
+        existing_review.rating = rating
+        existing_review.title = title or None
+        existing_review.body = body
+        existing_review.created_at = datetime.utcnow()
+        existing_review.is_approved = 0  # Reset approval when edited
+    else:
+        # Create new review
+        new_review = Review(
+            product_id=product_id,
+            user_id=user_id,
+            rating=rating,
+            title=title or None,
+            body=body
+        )
+        db.session.add(new_review)
+    
+    db.session.commit()
     flash('Thanks for your review!')
     return redirect(url_for('product_detail', product_id=product_id))
 
@@ -537,58 +440,45 @@ def cart_view():
     cart = ensure_cart()
     items = []
     if cart:
-        conn = get_db_connection()
-        cur = conn.cursor()
         for pid, qty in cart.items():
-            cur.execute("SELECT id, title, price FROM products WHERE id = ?", (pid,))
-            product = cur.fetchone()
+            product = Product.query.get(pid)
             if product:
                 items.append({
                     'product': product,
                     'quantity': qty,
-                    'line_total': float(product['price']) * qty
+                    'line_total': float(product.price) * qty
                 })
-        conn.close()
     total_items, total_amount = cart_total_items_and_amount(cart)
     
     # Fetch recently viewed products
     recently_viewed = []
     user_id = session.get('user_id')
     if user_id:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT DISTINCT p.id, p.title, p.price, p.image_url, p.stock
-            FROM product_views pv
-            JOIN products p ON pv.product_id = p.id
-            WHERE pv.user_id = ?
-            ORDER BY pv.viewed_at DESC
-            LIMIT 8
-        """, (user_id,))
-        recently_viewed = cur.fetchall()
-        conn.close()
+        recently_viewed = db.session.query(Product)\
+            .join(ProductView)\
+            .filter(ProductView.user_id == user_id)\
+            .distinct(Product.id)\
+            .order_by(desc(ProductView.viewed_at))\
+            .limit(8)\
+            .all()
     
-    return render_template('cart.html', items=items, total_items=total_items, total_amount=total_amount, recently_viewed=recently_viewed)
+    response = make_response(render_template('cart.html', items=items, total_items=total_items, total_amount=total_amount, recently_viewed=recently_viewed))
+    response = save_cart_to_cookie(response, cart)
+    return response
 
 @app.route('/cart/add', methods=['POST'])
 def cart_add():
     product_id = request.form.get('product_id')
     qty = int(request.form.get('quantity', 1))
-    # ensure product exists and respect stock limits
-    conn = get_db_connection()
-    cur = conn.cursor()
-    try:
-        cur.execute("SELECT id, stock FROM products WHERE id = ?", (product_id,))
-        prod = cur.fetchone()
-    finally:
-        conn.close()
-
+    
+    # Ensure product exists and respect stock limits
+    prod = Product.query.get(product_id)
     if not prod:
         flash("Product not found.")
         return redirect(request.form.get('next') or url_for('products'))
 
     # stock == None/NULL means unlimited
-    stock = prod['stock']
+    stock = prod.stock
     cart = ensure_cart()
     cart = dict(cart)
     current = cart.get(product_id, 0)
@@ -616,20 +506,24 @@ def cart_add():
             msg = f"Only {add_amount} items were added due to limited stock."
         else:
             msg = "Added to cart."
-        return jsonify({
+        response = make_response(jsonify({
             "ok": True,
             "total_items": total_items,
             "total_amount": float(total_amount),
             "added": add_amount,
             "requested": add_requested,
             "message": msg
-        })
+        }))
+        response = save_cart_to_cookie(response, cart)
+        return response
     # notify if we could not add full requested amount
     if add_amount < add_requested:
         flash(f"Only {add_amount} items were added due to limited stock.")
     else:
         flash("Added to cart.")
-    return redirect(request.form.get('next') or url_for('cart_view'))
+    response = make_response(redirect(request.form.get('next') or url_for('cart_view')))
+    response = save_cart_to_cookie(response, cart)
+    return response
 
 @app.route('/cart/summary')
 def cart_summary():
@@ -642,8 +536,6 @@ def cart_update():
     cart = ensure_cart()
     cart = dict(cart)
     # For each qty_<id> field, ensure quantity does not exceed stock
-    conn = get_db_connection()
-    cur = conn.cursor()
     for pid, qty in request.form.items():
         if not pid.startswith("qty_"):
             continue
@@ -657,19 +549,18 @@ def cart_update():
             continue
 
         # check stock for this product
-        cur.execute("SELECT stock FROM products WHERE id = ?", (prod_id,))
-        r = cur.fetchone()
-        if r and r['stock'] is not None:
-            stock = r['stock']
-            if q > stock:
-                q = stock
-                flash(f"Quantity for product {prod_id} reduced to available stock ({stock}).")
+        product = Product.query.get(prod_id)
+        if product and product.stock is not None:
+            if q > product.stock:
+                q = product.stock
+                flash(f"Quantity for product {prod_id} reduced to available stock ({product.stock}).")
 
         cart[prod_id] = q
-    conn.close()
     session['cart'] = cart
     flash("Cart updated.")
-    return redirect(url_for('cart_view'))
+    response = make_response(redirect(url_for('cart_view')))
+    response = save_cart_to_cookie(response, cart)
+    return response
 
 @app.route('/cart/remove/<int:product_id>', methods=['POST'])
 def cart_remove(product_id):
@@ -678,7 +569,9 @@ def cart_remove(product_id):
     cart.pop(str(product_id), None)
     session['cart'] = cart
     flash("Removed item.")
-    return redirect(url_for('cart_view'))
+    response = make_response(redirect(url_for('cart_view')))
+    response = save_cart_to_cookie(response, cart)
+    return response
 
 @app.route('/register', methods=['GET','POST'])
 def register():
@@ -693,20 +586,19 @@ def register():
         if not is_strong_password(password):
             flash("Password is too weak. Use at least 8 characters including uppercase, lowercase, a number, and a symbol.", "danger")
             return redirect(url_for('register'))
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT id FROM users WHERE username = ? OR email = ?", (username, email))
-        if cur.fetchone():
-            conn.close()
+        
+        # Check if user already exists
+        existing_user = User.query.filter((User.username == username) | (User.email == email)).first()
+        if existing_user:
             flash("Username or email already taken.")
             return redirect(url_for('register'))
+        
         pw_hash = generate_password_hash(password)
-        cur.execute("INSERT INTO users (username, email, password_hash, is_seller) VALUES (?, ?, ?, 0)",
-                    (username, email, pw_hash))
-        conn.commit()
-        user_id = cur.lastrowid
-        conn.close()
-        session['user_id'] = user_id
+        new_user = User(username=username, email=email, password_hash=pw_hash, is_seller=0)
+        db.session.add(new_user)
+        db.session.commit()
+        
+        session['user_id'] = new_user.id
         session['username'] = username
         session.permanent = True
         flash("Registered and logged in.")
@@ -719,19 +611,38 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username','').strip()
         password = request.form.get('password','')
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT id, username, password_hash FROM users WHERE username = ? OR email = ?", (username, username))
-        user = cur.fetchone()
-        conn.close()
-        if not user or not check_password_hash(user['password_hash'], password):
+        
+        user = User.query.filter((User.username == username) | (User.email == username)).first()
+        if not user or not check_password_hash(user.password_hash, password):
             flash("Invalid credentials.")
             return redirect(url_for('login', next=request.args.get('next')))
-        session['user_id'] = user['id']
-        session['username'] = user['username']
+        
+        session['user_id'] = user.id
+        session['username'] = user.username
         session.permanent = True
+        
+        # Merge cart from cookie if exists
+        cart_cookie = request.cookies.get('cart')
+        if cart_cookie:
+            try:
+                cookie_cart = json.loads(cart_cookie)
+                session_cart = session.get('cart', {})
+                # Merge: add cookie cart items to session cart
+                for pid, qty in cookie_cart.items():
+                    if pid in session_cart:
+                        session_cart[pid] = max(session_cart[pid], qty)
+                    else:
+                        session_cart[pid] = qty
+                session['cart'] = session_cart
+            except (json.JSONDecodeError, ValueError):
+                pass
+        
         flash("Logged in.")
-        return redirect(request.args.get('next') or url_for('index'))
+        response = make_response(redirect(request.args.get('next') or url_for('index')))
+        # Update cookie with merged cart
+        if 'cart' in session:
+            response = save_cart_to_cookie(response, session['cart'])
+        return response
     return render_template('login.html')
 
 @app.route('/logout')
@@ -749,22 +660,19 @@ def checkout():
         flash("Your cart is empty.")
         return redirect(url_for('products'))
 
-    conn = get_db_connection()
-    cur = conn.cursor()
-
     # build items list for display and compute total (include stock for checks)
     ids = list(cart.keys())
-    placeholders = ",".join("?" for _ in ids)
-    cur.execute(f"SELECT id, title, price, stock, seller_id FROM products WHERE id IN ({placeholders})", ids)
-    rows = {str(r["id"]): r for r in cur.fetchall()}
+    products = Product.query.filter(Product.id.in_(ids)).all()
+    product_dict = {str(p.id): p for p in products}
+    
     items = []
     total = 0.0
     for pid, qty in cart.items():
-        r = rows.get(str(pid))
-        if not r:
+        p = product_dict.get(str(pid))
+        if not p:
             continue
-        line_total = float(r["price"]) * qty
-        items.append({"product": r, "quantity": qty, "line_total": line_total})
+        line_total = float(p.price) * qty
+        items.append({"product": p, "quantity": qty, "line_total": line_total})
         total += line_total
 
     if request.method == 'POST':
@@ -778,11 +686,11 @@ def checkout():
         # re-validate stock for all items before creating order
         insufficient = []
         for pid, qty in cart.items():
-            prod = rows.get(str(pid))
+            prod = product_dict.get(str(pid))
             if not prod:
                 insufficient.append((pid, 0, qty))
                 continue
-            stock = prod['stock']
+            stock = prod.stock
             if stock is not None and stock < qty:
                 insufficient.append((pid, stock, qty))
         if insufficient:
@@ -795,75 +703,83 @@ def checkout():
                     msgs.append(f"Product {pid} only has {avail} left (you wanted {wanted}).")
             for m in msgs:
                 flash(m)
-            conn.close()
             return redirect(url_for('cart_view'))
 
         # create order
         buyer_id = session.get('user_id')
-        cur.execute(
-            "INSERT INTO orders (buyer_id, buyer_name, buyer_email, shipping_address, total) VALUES (?, ?, ?, ?, ?)",
-            (buyer_id, name, email, address, total)
+        new_order = Order(
+            buyer_id=buyer_id,
+            buyer_name=name,
+            buyer_email=email,
+            shipping_address=address,
+            total=total
         )
-        order_id = cur.lastrowid
+        db.session.add(new_order)
+        db.session.flush()  # Get the order ID
 
         # save address for user (avoid duplicates due to UNIQUE constraint)
         try:
             if buyer_id:
-                cur.execute("INSERT OR IGNORE INTO addresses (user_id, label, address_text) VALUES (?, ?, ?)",
-                            (buyer_id, None, address))
+                existing_address = Address.query.filter_by(user_id=buyer_id, address_text=address).first()
+                if not existing_address:
+                    new_address = Address(user_id=buyer_id, label=None, address_text=address)
+                    db.session.add(new_address)
         except Exception:
             pass
 
         # insert order items and reduce stock
         for pid, qty in cart.items():
-            prod = rows.get(str(pid))
+            prod = product_dict.get(str(pid))
             if not prod:
                 continue
-            unit_price = float(prod['price'])
-            cur.execute("INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES (?, ?, ?, ?)",
-                        (order_id, int(pid), qty, unit_price))
+            unit_price = float(prod.price)
+            order_item = OrderItem(
+                order_id=new_order.id,
+                product_id=int(pid),
+                quantity=qty,
+                unit_price=unit_price
+            )
+            db.session.add(order_item)
+            
             # decrement stock if not NULL
-            cur.execute("UPDATE products SET stock = stock - ? WHERE id = ? AND stock IS NOT NULL", (qty, int(pid)))
+            if prod.stock is not None:
+                prod.stock = prod.stock - qty
+            
             # increment seller's total_sales if seller_id present
-            seller_id = prod.get('seller_id') if isinstance(prod, dict) else prod['seller_id']
-            if seller_id:
-                cur.execute("UPDATE users SET total_sales = COALESCE(total_sales, 0) + ? WHERE id = ?", (qty, seller_id))
-        conn.commit()
-        conn.close()
+            if prod.seller_id:
+                seller = User.query.get(prod.seller_id)
+                if seller:
+                    seller.total_sales = (seller.total_sales or 0) + qty
+        
+        db.session.commit()
         session.pop('cart', None)
 
-        # redirect to order confirmation page (new)
+        # redirect to order confirmation page
         flash("Order placed successfully!")
-        return redirect(url_for('order_confirmation', order_id=order_id))
+        response = make_response(redirect(url_for('order_confirmation', order_id=new_order.id)))
+        # Clear cart cookie after successful purchase
+        response.set_cookie('cart', '', max_age=0)
+        return response
 
     # GET: prefill name/email if available
-    cur.execute("SELECT username, email FROM users WHERE id = ?", (session.get('user_id'),))
-    u = cur.fetchone()
-    conn.close()
-    pre_name = u['username'] if u else ''
-    pre_email = u['email'] if u else ''
+    user = User.query.get(session.get('user_id'))
+    pre_name = user.username if user else ''
+    pre_email = user.email if user else ''
     return render_template('checkout.html', items=items, total_amount=total, pre_name=pre_name, pre_email=pre_email)
 
 # new route: order confirmation
 @app.route('/order/<int:order_id>')
 def order_confirmation(order_id):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM orders WHERE id = ?", (order_id,))
-    order = cur.fetchone()
+    order = Order.query.get(order_id)
     if not order:
-        conn.close()
         flash("Order not found.")
         return redirect(url_for('index'))
 
-    cur.execute("""
-        SELECT oi.quantity, oi.unit_price, p.title
-        FROM order_items oi
-        JOIN products p ON oi.product_id = p.id
-        WHERE oi.order_id = ?
-    """, (order_id,))
-    items = cur.fetchall()
-    conn.close()
+    items = db.session.query(OrderItem, Product.title)\
+        .join(Product, OrderItem.product_id == Product.id)\
+        .filter(OrderItem.order_id == order_id)\
+        .all()
+    
     return render_template('order_confirmation.html', order=order, items=items)
 
 @app.route('/addresses')
@@ -873,38 +789,21 @@ def address_suggestions():
         return jsonify([])
 
     q = request.args.get('query', '').strip()
-    conn = get_db_connection()
-    cur = conn.cursor()
+    query = Address.query.filter_by(user_id=session['user_id'])
+    
     if q:
-        like = f"%{q}%"
-        cur.execute("SELECT id, label, address_text FROM addresses WHERE user_id = ? AND address_text LIKE ? ORDER BY created_at DESC LIMIT 8",
-                    (session['user_id'], like))
-    else:
-        cur.execute("SELECT id, label, address_text FROM addresses WHERE user_id = ? ORDER BY created_at DESC LIMIT 8",
-                    (session['user_id'],))
-    rows = cur.fetchall()
-    conn.close()
-    return jsonify([{"id": r["id"], "label": r["label"], "address": r["address_text"]} for r in rows])
+        query = query.filter(Address.address_text.like(f'%{q}%'))
+    
+    addresses = query.order_by(desc(Address.created_at)).limit(8).all()
+    return jsonify([{"id": a.id, "label": a.label, "address": a.address_text} for a in addresses])
 
 @app.route('/seller/<int:seller_id>')
 def seller_profile(seller_id):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute(
-        "SELECT id, username, business_name, seller_description, rating, total_sales FROM users WHERE id = ?",
-        (seller_id,)
-    )
-    seller = cur.fetchone()
-
+    seller = User.query.get(seller_id)
     products = []
     if seller:
-        cur.execute(
-            "SELECT id, title, description, price, created_at FROM products WHERE seller_id = ? ORDER BY created_at DESC",
-            (seller_id,)
-        )
-        products = cur.fetchall()
+        products = Product.query.filter_by(seller_id=seller_id).order_by(desc(Product.created_at)).all()
 
-    conn.close()
     return render_template('seller_profile.html', seller=seller, products=products)
 
 # Serve favicon automatically from available assets
@@ -934,13 +833,9 @@ def favicon():
 @login_required
 def post_ad():
     # Check if user is a seller
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT is_seller FROM users WHERE id = ?", (session.get('user_id'),))
-    user = cur.fetchone()
+    user = User.query.get(session.get('user_id'))
     
-    if not user or not user['is_seller']:
-        conn.close()
+    if not user or not user.is_seller:
         flash("You must be a seller to post ads. Please contact support to become a seller.", "warning")
         return redirect(url_for('index'))
     
@@ -952,6 +847,13 @@ def post_ad():
         category = request.form.get('category', 'Other').strip()
         image_url = request.form.get('image_url', '').strip() or None
         
+        # Auction fields
+        is_auction = request.form.get('is_auction') == 'on'
+        starting_bid = request.form.get('starting_bid', '').strip()
+        auction_duration = request.form.get('auction_duration', '').strip()
+        reserve_price = request.form.get('reserve_price', '').strip()
+        buy_now_price = request.form.get('buy_now_price', '').strip()
+        
         # Handle image URL formatting
         if image_url and not (image_url.startswith('http://') or image_url.startswith('https://') or image_url.startswith('/')):
             # Treat bare filenames as files placed under /static/img/
@@ -960,33 +862,68 @@ def post_ad():
         # Validation
         if not title:
             flash("Title is required.", "danger")
-            conn.close()
             return redirect(url_for('post_ad'))
         
         try:
-            price_val = float(price)
-            stock_val = int(stock)
-            if price_val < 0 or stock_val < 0:
-                raise ValueError("Price and stock must be non-negative")
+            if is_auction:
+                # For auctions: stock must be 1 (one-of-a-kind)
+                stock_val = 1
+                starting_bid_val = float(starting_bid) if starting_bid else 0
+                if starting_bid_val <= 0:
+                    raise ValueError("Starting bid must be greater than 0")
+                
+                # Calculate auction end time
+                duration_days = int(auction_duration) if auction_duration else 7
+                if duration_days < 1 or duration_days > 30:
+                    raise ValueError("Auction duration must be between 1 and 30 days")
+                auction_end_time = datetime.utcnow() + timedelta(days=duration_days)
+                
+                # Optional fields
+                reserve_price_val = float(reserve_price) if reserve_price else None
+                buy_now_price_val = float(buy_now_price) if buy_now_price else None
+                
+                price_val = starting_bid_val  # Set price to starting bid for display
+            else:
+                # Regular product
+                price_val = float(price)
+                stock_val = int(stock)
+                if price_val < 0 or stock_val < 0:
+                    raise ValueError("Price and stock must be non-negative")
+                starting_bid_val = None
+                auction_end_time = None
+                reserve_price_val = None
+                buy_now_price_val = None
+                
         except ValueError as e:
-            flash(f"Invalid price or stock: {e}", "danger")
-            conn.close()
+            flash(f"Invalid input: {e}", "danger")
             return redirect(url_for('post_ad'))
         
         # Insert the product
         seller_id = session.get('user_id')
-        cur.execute(
-            "INSERT INTO products (seller_id, title, description, price, stock, image_url, category) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (seller_id, title, description, price_val, stock_val, image_url, category)
+        new_product = Product(
+            seller_id=seller_id,
+            title=title,
+            description=description,
+            price=price_val,
+            stock=stock_val,
+            image_url=image_url,
+            category=category,
+            is_auction=1 if is_auction else 0,
+            starting_bid=starting_bid_val,
+            current_bid=starting_bid_val if is_auction else None,
+            auction_end=auction_end_time,
+            reserve_price=reserve_price_val,
+            buy_now_price=buy_now_price_val
         )
-        conn.commit()
-        product_id = cur.lastrowid
-        conn.close()
+        db.session.add(new_product)
+        db.session.commit()
         
-        flash("Your ad has been posted successfully!", "success")
-        return redirect(url_for('product_detail', product_id=product_id))
+        if is_auction:
+            flash("Your auction has been posted successfully!", "success")
+        else:
+            flash("Your ad has been posted successfully!", "success")
+        return redirect(url_for('product_detail', product_id=new_product.id))
     
-    conn.close()
     return render_template('post_ad.html')
 
 @app.route('/my-listings')
@@ -994,25 +931,13 @@ def post_ad():
 def my_listings():
     # Show products posted by the current user (if they're a seller)
     user_id = session.get('user_id')
-    conn = get_db_connection()
-    cur = conn.cursor()
+    user = User.query.get(user_id)
     
-    cur.execute("SELECT is_seller FROM users WHERE id = ?", (user_id,))
-    user = cur.fetchone()
-    
-    if not user or not user['is_seller']:
-        conn.close()
+    if not user or not user.is_seller:
         flash("You must be a seller to view listings.", "warning")
         return redirect(url_for('index'))
     
-    cur.execute("""
-        SELECT id, title, description, price, stock, category, image_url, created_at 
-        FROM products 
-        WHERE seller_id = ? 
-        ORDER BY created_at DESC
-    """, (user_id,))
-    products = cur.fetchall()
-    conn.close()
+    products = Product.query.filter_by(seller_id=user_id).order_by(desc(Product.created_at)).all()
     
     return render_template('my_listings.html', products=products)
 
@@ -1026,126 +951,102 @@ def settings():
 @app.route('/admin')
 @admin_required
 def admin_index():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT
-          (SELECT COUNT(*) FROM products) AS products_count,
-          (SELECT COUNT(*) FROM users) AS users_count,
-          (SELECT COUNT(*) FROM orders) AS orders_count,
-          (SELECT COUNT(*) FROM reviews WHERE is_approved = 0) AS pending_reviews,
-          (SELECT COUNT(*) FROM reviews WHERE is_approved = 1) AS approved_reviews,
-          (SELECT COUNT(*) FROM reviews) AS total_reviews
-    """)
-    stats = cur.fetchone()
-    conn.close()
+    stats = {
+        'products_count': Product.query.count(),
+        'users_count': User.query.count(),
+        'orders_count': Order.query.count(),
+        'pending_reviews': Review.query.filter_by(is_approved=0).count(),
+        'approved_reviews': Review.query.filter_by(is_approved=1).count(),
+        'total_reviews': Review.query.count()
+    }
     return render_template('admin/dashboard.html', stats=stats)
 
 @app.route('/admin/reviews')
 @admin_required
 def admin_reviews():
     filter_status = request.args.get('status', 'pending')  # pending, approved, all
-    conn = get_db_connection()
-    cur = conn.cursor()
+    
+    query = db.session.query(
+        Review,
+        User.username.label('reviewer_name'),
+        Product.id.label('product_id'),
+        Product.title.label('product_name')
+    ).join(User, Review.user_id == User.id)\
+     .join(Product, Review.product_id == Product.id)
     
     if filter_status == 'pending':
-        query = """
-            SELECT r.id, r.rating, r.title, r.body, r.created_at,
-                   u.username as reviewer_name,
-                   p.id as product_id, p.name as product_name
-            FROM reviews r
-            JOIN users u ON r.user_id = u.id
-            JOIN products p ON r.product_id = p.id
-            WHERE r.is_approved = 0
-            ORDER BY r.created_at DESC
-        """
+        query = query.filter(Review.is_approved == 0).order_by(desc(Review.created_at))
     elif filter_status == 'approved':
-        query = """
-            SELECT r.id, r.rating, r.title, r.body, r.created_at, r.approved_at,
-                   u.username as reviewer_name,
-                   p.id as product_id, p.name as product_name
-            FROM reviews r
-            JOIN users u ON r.user_id = u.id
-            JOIN products p ON r.product_id = p.id
-            WHERE r.is_approved = 1
-            ORDER BY r.approved_at DESC
-        """
+        query = query.filter(Review.is_approved == 1).order_by(desc(Review.approved_at))
     else:  # all
-        query = """
-            SELECT r.id, r.rating, r.title, r.body, r.created_at, r.approved_at, r.is_approved,
-                   u.username as reviewer_name,
-                   p.id as product_id, p.name as product_name
-            FROM reviews r
-            JOIN users u ON r.user_id = u.id
-            JOIN products p ON r.product_id = p.id
-            ORDER BY r.created_at DESC
-        """
+        query = query.order_by(desc(Review.created_at))
     
-    cur.execute(query)
-    reviews = cur.fetchall()
-    conn.close()
+    reviews_raw = query.all()
+    # Convert to list of tuples/dicts for easier template access
+    reviews = []
+    for row in reviews_raw:
+        review_obj = row[0]  # The Review object
+        reviews.append({
+            'review': review_obj,
+            'reviewer_name': row.reviewer_name,
+            'product_id': row.product_id,
+            'product_name': row.product_name
+        })
     return render_template('admin/reviews.html', reviews=reviews, filter_status=filter_status)
 
 @app.route('/admin/reviews/<int:review_id>/approve', methods=['POST'])
 @admin_required
 def admin_review_approve(review_id):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("UPDATE reviews SET is_approved = 1, approved_at = datetime('now') WHERE id = ?", (review_id,))
-    conn.commit()
-    conn.close()
-    flash('Review approved successfully.')
+    review = Review.query.get(review_id)
+    if review:
+        review.is_approved = 1
+        review.approved_at = datetime.utcnow()
+        db.session.commit()
+        flash('Review approved successfully.')
     return redirect(url_for('admin_reviews'))
 
 @app.route('/admin/reviews/<int:review_id>/reject', methods=['POST'])
 @admin_required
 def admin_review_reject(review_id):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("DELETE FROM reviews WHERE id = ?", (review_id,))
-    conn.commit()
-    conn.close()
-    flash('Review rejected and deleted.')
+    review = Review.query.get(review_id)
+    if review:
+        db.session.delete(review)
+        db.session.commit()
+        flash('Review rejected and deleted.')
     return redirect(url_for('admin_reviews'))
 
 
 @app.route('/admin/orders')
 @admin_required
 def admin_orders():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT id, buyer_id, buyer_name, total, created_at FROM orders ORDER BY created_at DESC")
-    orders = cur.fetchall()
-    conn.close()
+    orders = Order.query.order_by(Order.created_at.desc()).all()
     return render_template('admin/orders.html', orders=orders)
 
 
 @app.route('/admin/orders/<int:order_id>')
 @admin_required
 def admin_order_detail(order_id):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM orders WHERE id = ?", (order_id,))
-    order = cur.fetchone()
+    order = Order.query.get(order_id)
     if not order:
-        conn.close()
         flash("Order not found.")
         return redirect(url_for('admin_orders'))
 
-    cur.execute("SELECT oi.quantity, oi.unit_price, p.title FROM order_items oi JOIN products p ON oi.product_id = p.id WHERE oi.order_id = ?", (order_id,))
-    items = cur.fetchall()
-    conn.close()
+    items_raw = db.session.query(OrderItem.quantity, OrderItem.unit_price, Product.title)\
+        .join(Product, OrderItem.product_id == Product.id)\
+        .filter(OrderItem.order_id == order_id)\
+        .all()
+    items = [dict(row._mapping) for row in items_raw]
     return render_template('admin/order_detail.html', order=order, items=items)
 
 # Product management
 @app.route('/admin/products')
 @admin_required
 def admin_products():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT p.id, p.title, p.price, p.stock, u.username AS seller FROM products p LEFT JOIN users u ON p.seller_id = u.id ORDER BY p.created_at DESC")
-    products = cur.fetchall()
-    conn.close()
+    products_raw = db.session.query(Product.id, Product.title, Product.price, Product.stock, User.username.label('seller'))\
+        .outerjoin(User, Product.seller_id == User.id)\
+        .order_by(Product.created_at.desc())\
+        .all()
+    products = [dict(row._mapping) for row in products_raw]
     return render_template('admin/products.html', products=products)
 
 @app.route('/admin/products/new', methods=['GET', 'POST'])
@@ -1169,33 +1070,32 @@ def admin_product_new():
         except ValueError:
             flash("Invalid price or stock.")
             return redirect(url_for('admin_product_new'))
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("INSERT INTO products (seller_id, title, description, price, stock, image_url, category) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    (seller_id, title, description, price_val, stock_val, image_url, category))
-        conn.commit()
-        conn.close()
+        
+        new_product = Product(
+            seller_id=seller_id,
+            title=title,
+            description=description,
+            price=price_val,
+            stock=stock_val,
+            image_url=image_url,
+            category=category
+        )
+        db.session.add(new_product)
+        db.session.commit()
         flash("Product created.")
         return redirect(url_for('admin_products'))
     # GET
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT id, username FROM users ORDER BY username")
-    sellers = cur.fetchall()
-    conn.close()
+    sellers = User.query.order_by(User.username).all()
     return render_template('admin/product_form.html', sellers=sellers, product=None)
 
 @app.route('/admin/products/<int:product_id>/edit', methods=['GET', 'POST'])
 @admin_required
 def admin_product_edit(product_id):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM products WHERE id = ?", (product_id,))
-    product = cur.fetchone()
+    product = Product.query.get(product_id)
     if not product:
-        conn.close()
         flash("Product not found.")
         return redirect(url_for('admin_products'))
+    
     if request.method == 'POST':
         title = request.form.get('title','').strip()
         description = request.form.get('description','').strip()
@@ -1214,30 +1114,29 @@ def admin_product_edit(product_id):
         if image_url and not (image_url.startswith('http://') or image_url.startswith('https://') or image_url.startswith('/')):
             image_url = f"/static/img/{image_url}"
 
+        product.seller_id = seller_id
+        product.title = title
+        product.description = description
+        product.price = price_val
+        product.stock = stock_val
+        product.category = category
         if image_url is not None:
-            cur.execute("UPDATE products SET seller_id = ?, title = ?, description = ?, price = ?, stock = ?, image_url = ?, category = ? WHERE id = ?",
-                (seller_id, title, description, price_val, stock_val, image_url, category, product_id))
-        else:
-            cur.execute("UPDATE products SET seller_id = ?, title = ?, description = ?, price = ?, stock = ?, category = ? WHERE id = ?",
-                (seller_id, title, description, price_val, stock_val, category, product_id))
-        conn.commit()
-        conn.close()
+            product.image_url = image_url
+        
+        db.session.commit()
         flash("Product updated.")
         return redirect(url_for('admin_products'))
     # GET form
-    cur.execute("SELECT id, username FROM users ORDER BY username")
-    sellers = cur.fetchall()
-    conn.close()
+    sellers = User.query.order_by(User.username).all()
     return render_template('admin/product_form.html', product=product, sellers=sellers)
 
 @app.route('/admin/products/<int:product_id>/delete', methods=['POST'])
 @admin_required
 def admin_product_delete(product_id):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("DELETE FROM products WHERE id = ?", (product_id,))
-    conn.commit()
-    conn.close()
+    product = Product.query.get(product_id)
+    if product:
+        db.session.delete(product)
+        db.session.commit()
     flash("Product deleted.")
     return redirect(url_for('admin_products'))
 
@@ -1245,28 +1144,19 @@ def admin_product_delete(product_id):
 @app.route('/admin/users')
 @admin_required
 def admin_users():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT id, username, email, is_admin, is_seller, created_at FROM users ORDER BY created_at DESC")
-    users = cur.fetchall()
-    conn.close()
+    users = User.query.order_by(User.created_at.desc()).all()
     return render_template('admin/users.html', users=users)
 
 @app.route('/admin/users/<int:user_id>/toggle_admin', methods=['POST'])
 @admin_required
 def admin_user_toggle_admin(user_id):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT is_admin FROM users WHERE id = ?", (user_id,))
-    u = cur.fetchone()
-    if not u:
-        conn.close()
+    user = User.query.get(user_id)
+    if not user:
         flash("User not found.")
         return redirect(url_for('admin_users'))
-    new = 0 if u['is_admin'] else 1
-    cur.execute("UPDATE users SET is_admin = ? WHERE id = ?", (new, user_id))
-    conn.commit()
-    conn.close()
+    
+    user.is_admin = not user.is_admin
+    db.session.commit()
     flash("User admin status updated.")
     return redirect(url_for('admin_users'))
 
@@ -1274,21 +1164,16 @@ def admin_user_toggle_admin(user_id):
 @app.route('/admin/users/<int:user_id>/toggle_seller', methods=['POST'])
 @admin_required
 def admin_user_toggle_seller(user_id):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT is_seller FROM users WHERE id = ?", (user_id,))
-    u = cur.fetchone()
-    if not u:
-        conn.close()
+    user = User.query.get(user_id)
+    if not user:
         flash("User not found.")
         return redirect(url_for('admin_users'))
-    new = 0 if u['is_seller'] else 1
-    cur.execute("UPDATE users SET is_seller = ? WHERE id = ?", (new, user_id))
-    conn.commit()
-    conn.close()
+    
+    user.is_seller = not user.is_seller
+    db.session.commit()
     flash("User seller status updated.")
     # if we just promoted them to seller, send admin to the seller details form to fill info
-    if new == 1:
+    if user.is_seller:
         return redirect(url_for('admin_edit_seller', user_id=user_id))
     return redirect(url_for('admin_users'))
 
@@ -1296,12 +1181,8 @@ def admin_user_toggle_seller(user_id):
 @app.route('/admin/users/<int:user_id>/seller', methods=['GET', 'POST'])
 @admin_required
 def admin_edit_seller(user_id):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT id, username, business_name, seller_description, rating, total_sales, is_seller FROM users WHERE id = ?", (user_id,))
-    u = cur.fetchone()
-    if not u:
-        conn.close()
+    user = User.query.get(user_id)
+    if not user:
         flash("User not found.")
         return redirect(url_for('admin_users'))
 
@@ -1318,15 +1199,16 @@ def admin_edit_seller(user_id):
             total_sales = 0
 
         # ensure user is marked as seller
-        cur.execute("UPDATE users SET business_name = ?, seller_description = ?, rating = ?, total_sales = ?, is_seller = 1 WHERE id = ?",
-                    (business_name, seller_description, rating, total_sales, user_id))
-        conn.commit()
-        conn.close()
+        user.business_name = business_name
+        user.seller_description = seller_description
+        user.rating = rating
+        user.total_sales = total_sales
+        user.is_seller = True
+        db.session.commit()
         flash("Seller details updated.")
         return redirect(url_for('admin_users'))
 
-    conn.close()
-    return render_template('admin/seller_form.html', user=u)
+    return render_template('admin/seller_form.html', user=user)
 
 @app.route('/admin/users/<int:user_id>/delete', methods=['POST'])
 @admin_required
@@ -1335,11 +1217,11 @@ def admin_user_delete(user_id):
     if session.get('user_id') == user_id:
         flash("Cannot delete your own account.")
         return redirect(url_for('admin_users'))
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("DELETE FROM users WHERE id = ?", (user_id,))
-    conn.commit()
-    conn.close()
+    
+    user = User.query.get(user_id)
+    if user:
+        db.session.delete(user)
+        db.session.commit()
     flash("User deleted.")
     return redirect(url_for('admin_users'))
 
@@ -1350,45 +1232,37 @@ def admin_user_delete(user_id):
 @login_required
 def favorites():
     user_id = session.get('user_id')
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT p.id, p.title, p.description, p.price, p.stock, p.image_url, p.category,
-               u.business_name, u.rating, p.seller_id
-        FROM favorites f
-        JOIN products p ON f.product_id = p.id
-        LEFT JOIN users u ON p.seller_id = u.id
-        WHERE f.user_id = ?
-        ORDER BY f.created_at DESC
-    """, (user_id,))
-    products = cur.fetchall()
-    conn.close()
+    products_raw = db.session.query(Product.id, Product.title, Product.description, Product.price, 
+                                Product.stock, Product.image_url, Product.category,
+                                User.business_name, User.rating, Product.seller_id)\
+        .join(Favorite, Favorite.product_id == Product.id)\
+        .outerjoin(User, Product.seller_id == User.id)\
+        .filter(Favorite.user_id == user_id)\
+        .order_by(Favorite.created_at.desc())\
+        .all()
+    products = [dict(row._mapping) for row in products_raw]
     return render_template('favorites.html', products=products)
 
 @app.route('/favorites/add/<int:product_id>', methods=['POST'])
 @login_required
 def add_favorite(product_id):
     user_id = session.get('user_id')
-    conn = get_db_connection()
-    cur = conn.cursor()
     try:
-        cur.execute("INSERT INTO favorites (user_id, product_id) VALUES (?, ?)", (user_id, product_id))
-        conn.commit()
+        new_fav = Favorite(user_id=user_id, product_id=product_id)
+        db.session.add(new_fav)
+        db.session.commit()
         flash("Added to favorites!", "success")
-    except:
+    except IntegrityError:
+        db.session.rollback()
         flash("Already in favorites.", "info")
-    conn.close()
     return redirect(request.referrer or url_for('products'))
 
 @app.route('/favorites/remove/<int:product_id>', methods=['POST'])
 @login_required
 def remove_favorite(product_id):
     user_id = session.get('user_id')
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("DELETE FROM favorites WHERE user_id = ? AND product_id = ?", (user_id, product_id))
-    conn.commit()
-    conn.close()
+    Favorite.query.filter_by(user_id=user_id, product_id=product_id).delete()
+    db.session.commit()
     flash("Removed from favorites.")
     return redirect(request.referrer or url_for('favorites'))
 
@@ -1401,42 +1275,36 @@ def forgot_password():
             flash("Please enter your email.", "danger")
             return redirect(url_for('forgot_password'))
         
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT id FROM users WHERE email = ?", (email,))
-        user = cur.fetchone()
+        user = User.query.filter_by(email=email).first()
         
         if user:
             import secrets
             from datetime import datetime, timedelta
             token = secrets.token_urlsafe(32)
-            expires = (datetime.utcnow() + timedelta(hours=1)).isoformat()
-            cur.execute("INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)",
-                       (user['id'], token, expires))
-            conn.commit()
+            expires = datetime.utcnow() + timedelta(hours=1)
+            
+            reset_token = PasswordResetToken(user_id=user.id, token=token, expires_at=expires)
+            db.session.add(reset_token)
+            db.session.commit()
             # In production, send email with reset link
             reset_link = url_for('reset_password', token=token, _external=True)
             flash(f"Password reset link (in production this would be emailed): {reset_link}", "info")
         else:
             flash("If that email exists, a reset link has been sent.", "info")
         
-        conn.close()
         return redirect(url_for('login'))
     return render_template('forgot_password.html')
 
 @app.route('/reset-password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     from datetime import datetime
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT user_id, expires_at FROM password_reset_tokens 
-        WHERE token = ? AND datetime(expires_at) > datetime('now')
-    """, (token,))
-    reset = cur.fetchone()
+    
+    reset = PasswordResetToken.query.filter(
+        PasswordResetToken.token == token,
+        PasswordResetToken.expires_at > datetime.utcnow()
+    ).first()
     
     if not reset:
-        conn.close()
         flash("Invalid or expired reset link.", "danger")
         return redirect(url_for('login'))
     
@@ -1447,14 +1315,14 @@ def reset_password(token):
             return redirect(url_for('reset_password', token=token))
         
         pw_hash = generate_password_hash(password)
-        cur.execute("UPDATE users SET password_hash = ? WHERE id = ?", (pw_hash, reset['user_id']))
-        cur.execute("DELETE FROM password_reset_tokens WHERE token = ?", (token,))
-        conn.commit()
-        conn.close()
+        user = User.query.get(reset.user_id)
+        user.password_hash = pw_hash
+        
+        db.session.delete(reset)
+        db.session.commit()
         flash("Password reset successfully. Please log in.", "success")
         return redirect(url_for('login'))
     
-    conn.close()
     return render_template('reset_password.html', token=token)
 
 # Notifications
@@ -1462,35 +1330,27 @@ def reset_password(token):
 @login_required
 def notifications():
     user_id = session.get('user_id')
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT id, message, link, is_read, created_at 
-        FROM notifications 
-        WHERE user_id = ? 
-        ORDER BY created_at DESC 
-        LIMIT 50
-    """, (user_id,))
-    notifs = cur.fetchall()
+    notifs = Notification.query.filter_by(user_id=user_id)\
+        .order_by(Notification.created_at.desc())\
+        .limit(50)\
+        .all()
     
     # If AJAX request, return JSON without marking as read
     if request.headers.get('Accept') == 'application/json' or request.args.get('json') == '1':
-        conn.close()
-        return jsonify({'notifications': [dict(n) for n in notifs]})
+        return jsonify({'notifications': [{'id': n.id, 'message': n.message, 'link': n.link, 
+                                          'is_read': n.is_read, 'created_at': n.created_at.isoformat()} 
+                                         for n in notifs]})
     
     # Mark as read for full page view
-    cur.execute("UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0", (user_id,))
-    conn.commit()
-    conn.close()
+    Notification.query.filter_by(user_id=user_id, is_read=False).update({'is_read': True})
+    db.session.commit()
     return render_template('notifications.html', notifications=notifs)
 
 def create_notification(user_id, message, link=None):
     """Helper to create a notification for a user."""
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("INSERT INTO notifications (user_id, message, link) VALUES (?, ?, ?)", (user_id, message, link))
-    conn.commit()
-    conn.close()
+    notif = Notification(user_id=user_id, message=message, link=link)
+    db.session.add(notif)
+    db.session.commit()
 
 # Report Product
 @app.route('/product/<int:product_id>/report', methods=['POST'])
@@ -1502,12 +1362,9 @@ def report_product(product_id):
         return redirect(url_for('product_detail', product_id=product_id))
     
     user_id = session.get('user_id')
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("INSERT INTO product_reports (product_id, reporter_id, reason) VALUES (?, ?, ?)",
-               (product_id, user_id, reason))
-    conn.commit()
-    conn.close()
+    report = ProductReport(product_id=product_id, reporter_id=user_id, reason=reason)
+    db.session.add(report)
+    db.session.commit()
     flash("Thank you for your report. We'll review it shortly.", "success")
     return redirect(url_for('product_detail', product_id=product_id))
 
@@ -1521,26 +1378,19 @@ def reply_to_review(review_id):
         return redirect(request.referrer or url_for('index'))
     
     user_id = session.get('user_id')
-    conn = get_db_connection()
-    cur = conn.cursor()
     
     # Verify this user is the seller of the reviewed product
-    cur.execute("""
-        SELECT r.id, p.seller_id 
-        FROM reviews r
-        JOIN products p ON r.product_id = p.id
-        WHERE r.id = ?
-    """, (review_id,))
-    review = cur.fetchone()
+    review = db.session.query(Review, Product.seller_id)\
+        .join(Product, Review.product_id == Product.id)\
+        .filter(Review.id == review_id)\
+        .first()
     
-    if not review or review['seller_id'] != user_id:
-        conn.close()
+    if not review or review[1] != user_id:
         flash("You can only reply to reviews on your own products.", "danger")
         return redirect(request.referrer or url_for('index'))
     
-    cur.execute("UPDATE reviews SET seller_response = ? WHERE id = ?", (response, review_id))
-    conn.commit()
-    conn.close()
+    review[0].seller_response = response
+    db.session.commit()
     flash("Response added to review.", "success")
     return redirect(request.referrer or url_for('index'))
 
@@ -1549,27 +1399,21 @@ def reply_to_review(review_id):
 @login_required
 def edit_profile():
     user_id = session.get('user_id')
-    conn = get_db_connection()
-    cur = conn.cursor()
+    user = User.query.get(user_id)
     
     if request.method == 'POST':
         business_name = request.form.get('business_name', '').strip() or None
         seller_description = request.form.get('seller_description', '').strip() or None
         profile_picture = request.form.get('profile_picture', '').strip() or None
         
-        cur.execute("""
-            UPDATE users 
-            SET business_name = ?, seller_description = ?, profile_picture = ?
-            WHERE id = ?
-        """, (business_name, seller_description, profile_picture, user_id))
-        conn.commit()
-        conn.close()
+        user.business_name = business_name
+        user.seller_description = seller_description
+        user.profile_picture = profile_picture
+        
+        db.session.commit()
         flash("Profile updated successfully!", "success")
         return redirect(url_for('edit_profile'))
     
-    cur.execute("SELECT * FROM users WHERE id = ?", (user_id,))
-    user = cur.fetchone()
-    conn.close()
     return render_template('edit_profile.html', user=user)
 
 # Seller Dashboard with Analytics
@@ -1577,83 +1421,64 @@ def edit_profile():
 @login_required
 def seller_dashboard():
     user_id = session.get('user_id')
-    conn = get_db_connection()
-    cur = conn.cursor()
     
     # Check if user is a seller
-    cur.execute("SELECT is_seller FROM users WHERE id = ?", (user_id,))
-    user = cur.fetchone()
-    if not user or not user['is_seller']:
-        conn.close()
+    user = User.query.get(user_id)
+    if not user or not user.is_seller:
         flash("Seller access required.", "warning")
         return redirect(url_for('index'))
     
     # Get stats
-    cur.execute("SELECT COUNT(*) as count FROM products WHERE seller_id = ?", (user_id,))
-    product_count = cur.fetchone()['count']
+    product_count = Product.query.filter_by(seller_id=user_id).count()
     
-    cur.execute("""
-        SELECT COUNT(DISTINCT o.id) as count, COALESCE(SUM(o.total), 0) as revenue
-        FROM orders o
-        JOIN order_items oi ON oi.order_id = o.id
-        JOIN products p ON oi.product_id = p.id
-        WHERE p.seller_id = ?
-    """, (user_id,))
-    order_stats = cur.fetchone()
+    order_stats = db.session.query(
+        func.count(func.distinct(Order.id)).label('count'),
+        func.coalesce(func.sum(Order.total), 0).label('revenue')
+    ).join(OrderItem, OrderItem.order_id == Order.id)\
+     .join(Product, OrderItem.product_id == Product.id)\
+     .filter(Product.seller_id == user_id)\
+     .first()
     
     # Top products
-    cur.execute("""
-        SELECT p.id, p.title, SUM(oi.quantity) as sold, SUM(oi.quantity * oi.unit_price) as revenue
-        FROM products p
-        JOIN order_items oi ON oi.product_id = p.id
-        WHERE p.seller_id = ?
-        GROUP BY p.id
-        ORDER BY sold DESC
-        LIMIT 5
-    """, (user_id,))
-    top_products = cur.fetchall()
+    top_products_raw = db.session.query(
+        Product.id, Product.title,
+        func.sum(OrderItem.quantity).label('sold'),
+        func.sum(OrderItem.quantity * OrderItem.unit_price).label('revenue')
+    ).join(OrderItem, OrderItem.product_id == Product.id)\
+     .filter(Product.seller_id == user_id)\
+     .group_by(Product.id)\
+     .order_by(desc('sold'))\
+     .limit(5)\
+     .all()
+    top_products = [dict(row._mapping) for row in top_products_raw]
     
     # Recent orders
-    cur.execute("""
-        SELECT o.id, o.buyer_name, o.total, o.status, o.created_at
-        FROM orders o
-        JOIN order_items oi ON oi.order_id = o.id
-        JOIN products p ON oi.product_id = p.id
-        WHERE p.seller_id = ?
-        GROUP BY o.id
-        ORDER BY o.created_at DESC
-        LIMIT 10
-    """, (user_id,))
-    recent_orders = cur.fetchall()
+    recent_orders_raw = db.session.query(Order.id, Order.buyer_name, Order.total, Order.status, Order.created_at)\
+        .join(OrderItem, OrderItem.order_id == Order.id)\
+        .join(Product, OrderItem.product_id == Product.id)\
+        .filter(Product.seller_id == user_id)\
+        .group_by(Order.id)\
+        .order_by(Order.created_at.desc())\
+        .limit(10)\
+        .all()
+    recent_orders = [dict(row._mapping) for row in recent_orders_raw]
     
-    # Highest in each category (top performing product per category)
-    cur.execute("""
-        SELECT p.category, p.id, p.title, p.price, p.image_url, p.view_count,
-               COALESCE(SUM(oi.quantity), 0) as total_sold,
-               COALESCE(SUM(oi.quantity * oi.unit_price), 0) as category_revenue
-        FROM products p
-        LEFT JOIN order_items oi ON oi.product_id = p.id
-        WHERE p.seller_id = ? AND p.category IS NOT NULL
-        GROUP BY p.category, p.id
-        HAVING total_sold = (
-            SELECT MAX(sales)
-            FROM (
-                SELECT COALESCE(SUM(oi2.quantity), 0) as sales
-                FROM products p2
-                LEFT JOIN order_items oi2 ON oi2.product_id = p2.id
-                WHERE p2.seller_id = ? AND p2.category = p.category
-                GROUP BY p2.id
-            )
-        )
-        ORDER BY category_revenue DESC
-    """, (user_id, user_id))
-    top_by_category = cur.fetchall()
+    # Top product per category (simplified version)
+    top_by_category_raw = db.session.query(
+        Product.category, Product.id, Product.title, Product.price, Product.image_url, Product.view_count,
+        func.coalesce(func.sum(OrderItem.quantity), 0).label('total_sold'),
+        func.coalesce(func.sum(OrderItem.quantity * OrderItem.unit_price), 0).label('category_revenue')
+    ).outerjoin(OrderItem, OrderItem.product_id == Product.id)\
+     .filter(Product.seller_id == user_id, Product.category.isnot(None))\
+     .group_by(Product.category, Product.id)\
+     .order_by(desc('category_revenue'))\
+     .all()
+    top_by_category = [dict(row._mapping) for row in top_by_category_raw]
     
-    conn.close()
     return render_template('seller_dashboard.html', 
                          product_count=product_count,
-                         order_count=order_stats['count'],
-                         revenue=order_stats['revenue'],
+                         order_count=order_stats.count,
+                         revenue=order_stats.revenue,
                          top_products=top_products,
                          recent_orders=recent_orders,
                          top_by_category=top_by_category)
@@ -1662,29 +1487,33 @@ def seller_dashboard():
 def track_product_view(product_id):
     """Helper to track when a product is viewed."""
     user_id = session.get('user_id')
-    conn = get_db_connection()
-    cur = conn.cursor()
     
     # Delete any existing view records for this user and product to avoid duplicates
     if user_id:
-        cur.execute("DELETE FROM product_views WHERE user_id = ? AND product_id = ?", (user_id, product_id))
+        ProductView.query.filter_by(user_id=user_id, product_id=product_id).delete()
     
     # Insert new view record (this will be the most recent)
-    cur.execute("INSERT INTO product_views (user_id, product_id) VALUES (?, ?)", (user_id, product_id))
+    new_view = ProductView(user_id=user_id, product_id=product_id)
+    db.session.add(new_view)
     
     # Increment view count
-    cur.execute("UPDATE products SET view_count = view_count + 1 WHERE id = ?", (product_id,))
+    product = Product.query.get(product_id)
+    if product:
+        product.view_count = (product.view_count or 0) + 1
     
     # Clean up old views (keep last 50 per user)
     if user_id:
-        cur.execute("""
-            DELETE FROM product_views 
-            WHERE user_id = ? AND id NOT IN (
-                SELECT id FROM product_views WHERE user_id = ? ORDER BY viewed_at DESC LIMIT 50
-            )
-        """, (user_id, user_id))
-    conn.commit()
-    conn.close()
+        # Get IDs of old views to delete
+        old_views = db.session.query(ProductView.id)\
+            .filter(ProductView.user_id == user_id)\
+            .order_by(desc(ProductView.viewed_at))\
+            .offset(50)\
+            .all()
+        old_view_ids = [v.id for v in old_views]
+        if old_view_ids:
+            ProductView.query.filter(ProductView.id.in_(old_view_ids)).delete(synchronize_session=False)
+    
+    db.session.commit()
 
 @app.route('/recently-viewed')
 def recently_viewed():
@@ -1693,20 +1522,194 @@ def recently_viewed():
         flash("Please log in to see your recently viewed products.", "info")
         return redirect(url_for('login'))
     
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT DISTINCT p.id, p.title, p.price, p.image_url, p.stock, pv.viewed_at
-        FROM product_views pv
-        JOIN products p ON pv.product_id = p.id
-        WHERE pv.user_id = ?
-        ORDER BY pv.viewed_at DESC
-        LIMIT 20
-    """, (user_id,))
-    products = cur.fetchall()
-    conn.close()
+    products = db.session.query(Product, ProductView.viewed_at)\
+        .join(ProductView, ProductView.product_id == Product.id)\
+        .filter(ProductView.user_id == user_id)\
+        .distinct(Product.id)\
+        .order_by(desc(ProductView.viewed_at))\
+        .limit(20)\
+        .all()
+    
     return render_template('recently_viewed.html', products=products)
 
+# ===== AUCTION ROUTES =====
+
+@app.route('/auctions')
+def auctions():
+    """View all active auctions"""
+    # Get all auction products that haven't ended yet
+    active_auctions = Product.query.filter(
+        Product.is_auction == 1,
+        Product.auction_end > datetime.utcnow()
+    ).order_by(Product.auction_end.asc()).all()
+    
+    # Get ending soon (within 24 hours)
+    ending_soon = Product.query.filter(
+        Product.is_auction == 1,
+        Product.auction_end > datetime.utcnow(),
+        Product.auction_end <= datetime.utcnow() + timedelta(hours=24)
+    ).order_by(Product.auction_end.asc()).all()
+    
+    return render_template('auctions.html', 
+                         active_auctions=active_auctions,
+                         ending_soon=ending_soon)
+
+@app.route('/product/<int:product_id>/bid', methods=['POST'])
+@login_required
+def place_bid(product_id):
+    """Place a bid on an auction item"""
+    product = Product.query.get(product_id)
+    user_id = session.get('user_id')
+    
+    if not product or not product.is_auction:
+        flash("This is not an auction item.", "danger")
+        return redirect(url_for('products'))
+    
+    # Check if auction has ended
+    if product.auction_end and product.auction_end <= datetime.utcnow():
+        flash("This auction has ended.", "warning")
+        return redirect(url_for('product_detail', product_id=product_id))
+    
+    # Prevent seller from bidding on their own item
+    if product.seller_id == user_id:
+        flash("You cannot bid on your own auction.", "danger")
+        return redirect(url_for('product_detail', product_id=product_id))
+    
+    # Get bid amount
+    bid_amount_str = request.form.get('bid_amount', '').strip()
+    try:
+        bid_amount = float(bid_amount_str)
+    except ValueError:
+        flash("Invalid bid amount.", "danger")
+        return redirect(url_for('product_detail', product_id=product_id))
+    
+    # Validate bid amount
+    min_bid = product.current_bid + 1 if product.current_bid else product.starting_bid
+    if bid_amount < min_bid:
+        flash(f"Bid must be at least ${min_bid:.2f}", "danger")
+        return redirect(url_for('product_detail', product_id=product_id))
+    
+    # Check if there's a buy now price and user wants to buy now
+    if product.buy_now_price and bid_amount >= product.buy_now_price:
+        # Instant win - end auction
+        product.current_bid = product.buy_now_price
+        product.auction_end = datetime.utcnow()
+        
+        # Mark all previous bids as not winning
+        Bid.query.filter_by(product_id=product_id).update({'is_winning': 0})
+        
+        # Create winning bid
+        winning_bid = Bid(
+            product_id=product_id,
+            user_id=user_id,
+            bid_amount=product.buy_now_price,
+            is_winning=1
+        )
+        db.session.add(winning_bid)
+        db.session.commit()
+        
+        flash(f"Congratulations! You won the auction with Buy Now at ${product.buy_now_price:.2f}!", "success")
+        return redirect(url_for('product_detail', product_id=product_id))
+    
+    # Mark all previous bids for this product as not winning
+    Bid.query.filter_by(product_id=product_id).update({'is_winning': 0})
+    
+    # Create new bid
+    new_bid = Bid(
+        product_id=product_id,
+        user_id=user_id,
+        bid_amount=bid_amount,
+        is_winning=1
+    )
+    db.session.add(new_bid)
+    
+    # Update product's current bid
+    product.current_bid = bid_amount
+    db.session.commit()
+    
+    # Notify seller
+    create_notification(
+        product.seller_id,
+        f"New bid of ${bid_amount:.2f} placed on your auction: {product.title}",
+        url_for('product_detail', product_id=product_id)
+    )
+    
+    # Notify previous highest bidder (if any)
+    previous_high_bidder = Bid.query.filter(
+        Bid.product_id == product_id,
+        Bid.user_id != user_id,
+        Bid.is_winning == 0
+    ).order_by(desc(Bid.bid_amount)).first()
+    
+    if previous_high_bidder:
+        create_notification(
+            previous_high_bidder.user_id,
+            f"You've been outbid on {product.title}. Current bid: ${bid_amount:.2f}",
+            url_for('product_detail', product_id=product_id)
+        )
+    
+    flash(f"Bid placed successfully! You are currently the highest bidder at ${bid_amount:.2f}", "success")
+    return redirect(url_for('product_detail', product_id=product_id))
+
+@app.route('/my-bids')
+@login_required
+def my_bids():
+    """View user's bid history"""
+    user_id = session.get('user_id')
+    
+    # Get all bids by this user with product info
+    bids = db.session.query(Bid, Product)\
+        .join(Product, Bid.product_id == Product.id)\
+        .filter(Bid.user_id == user_id)\
+        .order_by(desc(Bid.created_at))\
+        .all()
+    
+    # Get auctions the user is winning
+    winning_bids = db.session.query(Bid, Product)\
+        .join(Product, Bid.product_id == Product.id)\
+        .filter(Bid.user_id == user_id, Bid.is_winning == 1)\
+        .all()
+    
+    return render_template('my_bids.html', bids=bids, winning_bids=winning_bids)
+
+@app.route('/auction/<int:product_id>/end', methods=['POST'])
+@login_required
+def end_auction(product_id):
+    """Manually end an auction (seller only)"""
+    product = Product.query.get(product_id)
+    user_id = session.get('user_id')
+    
+    if not product or not product.is_auction:
+        flash("Invalid auction.", "danger")
+        return redirect(url_for('my_listings'))
+    
+    if product.seller_id != user_id:
+        flash("You can only end your own auctions.", "danger")
+        return redirect(url_for('product_detail', product_id=product_id))
+    
+    if product.auction_end <= datetime.utcnow():
+        flash("This auction has already ended.", "info")
+        return redirect(url_for('product_detail', product_id=product_id))
+    
+    # End the auction
+    product.auction_end = datetime.utcnow()
+    db.session.commit()
+    
+    # Notify winning bidder
+    winning_bid = Bid.query.filter_by(product_id=product_id, is_winning=1).first()
+    if winning_bid:
+        create_notification(
+            winning_bid.user_id,
+            f"Congratulations! You won the auction for {product.title} at ${winning_bid.bid_amount:.2f}",
+            url_for('product_detail', product_id=product_id)
+        )
+    
+    flash("Auction ended successfully.", "success")
+    return redirect(url_for('product_detail', product_id=product_id))
+
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    # Allow overriding host/port via environment variables for flexibility
+    host = os.environ.get("HOST", "0.0.0.0")
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=True, host=host, port=port)
 

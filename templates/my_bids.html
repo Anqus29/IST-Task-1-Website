@@ -1,0 +1,186 @@
+{% include 'navbar.html' %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Bids - SecretBay Marketplace</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 80px auto 20px;
+            padding: 20px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .bid-item {
+            border-bottom: 1px solid #eee;
+            padding: 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .bid-item:last-child {
+            border-bottom: none;
+        }
+        .bid-image {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 4px;
+            background: #eee;
+        }
+        .bid-info {
+            flex: 1;
+        }
+        .bid-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .bid-details {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        .bid-amount {
+            font-size: 20px;
+            color: #4caf50;
+            font-weight: bold;
+        }
+        .bid-status {
+            padding: 5px 15px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .status-winning {
+            background: #4caf50;
+            color: white;
+        }
+        .status-outbid {
+            background: #ff9800;
+            color: white;
+        }
+        .status-won {
+            background: #2196f3;
+            color: white;
+        }
+        .status-lost {
+            background: #999;
+            color: white;
+        }
+        .view-link {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #2196f3;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .view-link:hover {
+            background: #1976d2;
+        }
+        .no-bids {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>My Bids</h1>
+
+        {% if winning_bids %}
+        <div class="section">
+            <h2>🏆 Currently Winning</h2>
+            {% for bid, product in winning_bids %}
+            <div class="bid-item">
+                {% if product.image_url %}
+                <img src="{{ product.image_url }}" alt="{{ product.title }}" class="bid-image">
+                {% else %}
+                <div class="bid-image" style="display: flex; align-items: center; justify-content: center; color: #999;">No Image</div>
+                {% endif %}
+                <div class="bid-info">
+                    <div class="bid-title">{{ product.title }}</div>
+                    <div class="bid-details">
+                        Your bid: ${{ "%.2f"|format(bid.bid_amount) }} | 
+                        Placed: {{ bid.created_at.strftime('%b %d, %I:%M %p') }}
+                    </div>
+                    <div class="bid-details">
+                        {% if product.auction_end > now %}
+                        Ends: {{ product.auction_end.strftime('%b %d, %I:%M %p') }}
+                        {% else %}
+                        <span style="color: #4caf50; font-weight: bold;">Auction Ended - You Won! 🎉</span>
+                        {% endif %}
+                    </div>
+                    <a href="{{ url_for('product_detail', product_id=product.id) }}" class="view-link">View Auction</a>
+                </div>
+                <div class="bid-status status-winning">WINNING</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="section">
+            <h2>All My Bids</h2>
+            {% if bids %}
+            {% for bid, product in bids %}
+            <div class="bid-item">
+                {% if product.image_url %}
+                <img src="{{ product.image_url }}" alt="{{ product.title }}" class="bid-image">
+                {% else %}
+                <div class="bid-image" style="display: flex; align-items: center; justify-content: center; color: #999;">No Image</div>
+                {% endif %}
+                <div class="bid-info">
+                    <div class="bid-title">{{ product.title }}</div>
+                    <div class="bid-details">
+                        Your bid: ${{ "%.2f"|format(bid.bid_amount) }} | 
+                        Current bid: ${{ "%.2f"|format(product.current_bid or product.starting_bid) }}
+                    </div>
+                    <div class="bid-details">
+                        Placed: {{ bid.created_at.strftime('%b %d, %I:%M %p') }}
+                    </div>
+                    <a href="{{ url_for('product_detail', product_id=product.id) }}" class="view-link">View Auction</a>
+                </div>
+                {% if bid.is_winning %}
+                <div class="bid-status status-winning">WINNING</div>
+                {% elif product.auction_end and product.auction_end <= now %}
+                <div class="bid-status status-lost">LOST</div>
+                {% else %}
+                <div class="bid-status status-outbid">OUTBID</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="no-bids">
+                <h3>No Bids Yet</h3>
+                <p>You haven't placed any bids yet.</p>
+                <a href="{{ url_for('auctions') }}" class="view-link">Browse Auctions</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% include 'footer.html' %}
+</body>
+</html>
