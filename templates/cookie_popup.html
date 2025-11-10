@@ -55,6 +55,26 @@
         margin: 0;
     }
 
+    .cookie-close {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: none;
+        border: none;
+        font-size: 28px;
+        color: #999;
+        cursor: pointer;
+        line-height: 1;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        transition: color 0.3s;
+    }
+
+    .cookie-close:hover {
+        color: #333;
+    }
+
     .cookie-description {
         color: #555;
         margin-bottom: 25px;
@@ -237,6 +257,7 @@
 
 <div id="cookie-consent-overlay"></div>
 <div id="cookie-consent-popup">
+    <button class="cookie-close" onclick="acceptAllCookies()" title="Accept and close">&times;</button>
     <div class="cookie-header">
         <div class="cookie-icon">🍪</div>
         <div>
@@ -337,12 +358,17 @@
     // Check if user has already consented
     function checkCookieConsent() {
         const consent = getCookie('cookie_consent');
+        console.log('Checking cookie consent:', consent);
+        console.log('All cookies:', document.cookie);
+        
         if (!consent) {
             // Show popup with delay for dramatic effect
             setTimeout(() => {
                 document.getElementById('cookie-consent-overlay').style.display = 'block';
                 document.getElementById('cookie-consent-popup').classList.add('show');
             }, 1000);
+        } else {
+            console.log('User already consented, not showing popup');
         }
     }
 
@@ -351,13 +377,20 @@
         const value = `; ${document.cookie}`;
         const parts = value.split(`; ${name}=`);
         if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
     }
 
     // Set cookie
     function setCookie(name, value, days) {
         const expires = new Date();
         expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
-        document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
+        // Encode the value to handle special characters
+        const encodedValue = encodeURIComponent(value);
+        document.cookie = `${name}=${encodedValue};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
+        
+        // Debug: verify cookie was set
+        console.log('Cookie set:', name, '=', value);
+        console.log('All cookies:', document.cookie);
     }
 
     // Accept all cookies
@@ -413,12 +446,20 @@
         const consentValue = JSON.stringify(cookiePreferences);
         setCookie('cookie_consent', consentValue, 365);
         
+        console.log('Saving consent and hiding popup...');
+        
         // Hide popup with animation
         const popup = document.getElementById('cookie-consent-popup');
+        const overlay = document.getElementById('cookie-consent-overlay');
+        
         popup.classList.remove('show');
+        
+        // Force hide after animation completes
         setTimeout(() => {
-            document.getElementById('cookie-consent-overlay').style.display = 'none';
-        }, 500);
+            overlay.style.display = 'none';
+            popup.style.display = 'none';
+            console.log('Popup hidden');
+        }, 600);
 
         // Show thank you message
         const message = cookiePreferences.functional && cookiePreferences.analytics && cookiePreferences.marketing

@@ -8,8 +8,10 @@
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
     <style>
         :root {
-            --primary-color: #00a87e;
-            --secondary-color: #f7f7f7;
+            --primary-color: #1e5a8e;
+            --ocean-blue: #006994;
+            --accent-color: #FF6B35;
+            --secondary-color: #f0f8ff;
             --text-color: #2c3e50;
         }
 
@@ -53,7 +55,7 @@
             <div class="row justify-content-center">
                 <div class="col-md-8 text-center">
                     <h1 class="display-5 mb-3">Post an Ad</h1>
-                    <p class="lead">List your item on Secret Bay marketplace</p>
+                    <p class="lead">List your boat or sailing gear on SailBay marketplace</p>
                 </div>
             </div>
         </div>
@@ -170,16 +172,13 @@
                             <div class="col-md-12 mb-3">
                                 <label for="category" class="form-label">Category <span class="text-danger">*</span></label>
                                 <select class="form-select" id="category" name="category" required>
+                                    <option value="Sailboats">Sailboats</option>
+                                    <option value="Gear">Gear</option>
+                                    <option value="Rigging">Rigging</option>
+                                    <option value="Sails">Sails</option>
+                                    <option value="Safety">Safety</option>
+                                    <option value="Accessories">Accessories</option>
                                     <option value="Other">Other</option>
-                                    <option value="Electronics">Electronics</option>
-                                    <option value="Antiques">Antiques</option>
-                                    <option value="Furniture">Furniture</option>
-                                    <option value="Clothing">Clothing</option>
-                                    <option value="Books">Books</option>
-                                    <option value="Sports">Sports</option>
-                                    <option value="Toys">Toys</option>
-                                    <option value="Office Supplies">Office Supplies</option>
-                                    <option value="Home & Garden">Home & Garden</option>
                                 </select>
                             </div>
                         </div>

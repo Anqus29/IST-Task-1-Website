@@ -14,7 +14,7 @@ from models import db, User, Product, Order, OrderItem, Review, Favorite, Notifi
 
 
 app = Flask(__name__)
-app.secret_key = "change_this_to_a_random_secret"
+app.secret_key = "yes_sir_i_did_change_the_secret_key"
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # Auto-logout after 30 min
 # Prefer HTTPS when building absolute URLs (can override via env)
 app.config['PREFERRED_URL_SCHEME'] = os.environ.get('PREFERRED_URL_SCHEME', 'http')
@@ -140,14 +140,15 @@ def admin_required(f):
 
 @app.route('/')
 def index():
-    # Fetch featured products with seller info
+    # Fetch featured products with seller info (exclude out of stock, limit to 9 for carousel)
     featured_raw = db.session.query(
         Product.id, Product.title, Product.description, Product.price, Product.stock, 
         Product.created_at, Product.seller_id, Product.image_url, Product.category,
         User.business_name, User.rating, User.username.label('seller_username')
     ).outerjoin(User, Product.seller_id == User.id)\
+     .filter(Product.stock > 0)\
      .order_by(desc(Product.created_at))\
-     .limit(12)\
+     .limit(9)\
      .all()
     
     # Convert to dictionaries for template compatibility
@@ -160,17 +161,23 @@ def index():
         'total_users': User.query.count()
     }
     
-    # Fetch recently viewed products
+    # Fetch recently viewed products (exclude out of stock)
     recently_viewed = []
     user_id = session.get('user_id')
     if user_id:
-        recently_viewed = db.session.query(Product)\
-            .join(ProductView, ProductView.product_id == Product.id)\
-            .filter(ProductView.user_id == user_id)\
-            .distinct(Product.id)\
-            .order_by(desc(ProductView.viewed_at))\
-            .limit(8)\
-            .all()
+        recently_viewed_raw = db.session.query(
+            Product.id, Product.title, Product.description, Product.price, Product.stock,
+            Product.image_url, Product.category, Product.seller_id,
+            User.business_name, User.username.label('seller_username')
+        ).join(ProductView, ProductView.product_id == Product.id)\
+         .outerjoin(User, Product.seller_id == User.id)\
+         .filter(ProductView.user_id == user_id)\
+         .filter(Product.stock > 0)\
+         .distinct(Product.id)\
+         .order_by(desc(ProductView.viewed_at))\
+         .limit(8)\
+         .all()
+        recently_viewed = [dict(row._mapping) for row in recently_viewed_raw]
     
     return render_template('index.html', featured_products=featured, recently_viewed=recently_viewed, stats=stats)
 
@@ -213,8 +220,13 @@ def products():
     page = int(request.args.get('page', 1))
     per_page = 20
     
-    # Build query
-    query = Product.query.join(User, Product.seller_id == User.id, isouter=True)
+    # Build query with explicit column selection
+    query = db.session.query(
+        Product.id, Product.title, Product.description, Product.price, Product.stock,
+        Product.image_url, Product.category, Product.condition, Product.location,
+        Product.view_count, Product.created_at, Product.seller_id,
+        User.business_name, User.username.label('seller_name')
+    ).outerjoin(User, Product.seller_id == User.id)
     
     # Apply filters
     if search:
@@ -237,23 +249,24 @@ def products():
         except ValueError:
             pass
     
-    # Apply sorting
+    # Apply sorting (in-stock items first, then out-of-stock)
     if sort == 'price_low':
-        query = query.order_by(Product.price.asc())
+        query = query.order_by(desc(Product.stock > 0), Product.price.asc())
     elif sort == 'price_high':
-        query = query.order_by(Product.price.desc())
+        query = query.order_by(desc(Product.stock > 0), Product.price.desc())
     elif sort == 'popular':
-        query = query.order_by(desc(Product.view_count), desc(Product.created_at))
+        query = query.order_by(desc(Product.stock > 0), desc(Product.view_count), desc(Product.created_at))
     else:
-        query = query.order_by(desc(Product.created_at))
+        query = query.order_by(desc(Product.stock > 0), desc(Product.created_at))
     
     # Get total count for pagination
     total = query.count()
     total_pages = (total + per_page - 1) // per_page
     
-    # Get paginated results
+    # Get paginated results and convert to dictionaries
     offset = (page - 1) * per_page
-    products_list = query.limit(per_page).offset(offset).all()
+    products_raw = query.limit(per_page).offset(offset).all()
+    products_list = [dict(row._mapping) for row in products_raw]
     
     # Get distinct categories and conditions for filters
     categories = db.session.query(Product.category).distinct().filter(Product.category.isnot(None)).order_by(Product.category).all()
@@ -280,15 +293,30 @@ def product_detail(product_id):
     # Track product view
     track_product_view(product_id)
     
-    # Fetch product with seller info
-    product = db.session.query(Product)\
-        .join(User, Product.seller_id == User.id, isouter=True)\
-        .filter(Product.id == product_id)\
-        .first()
+    # Fetch product with seller info - select specific columns to create dictionary
+    product_raw = db.session.query(
+        Product.id, Product.title, Product.description, Product.price, Product.stock,
+        Product.image_url, Product.category, Product.condition, Product.location,
+        Product.seller_id, Product.view_count, Product.created_at,
+        Product.is_auction, Product.starting_bid, Product.current_bid,
+        Product.auction_end, Product.reserve_price, Product.buy_now_price,
+        User.business_name, User.username.label('seller_username'), User.rating.label('seller_rating')
+    ).outerjoin(User, Product.seller_id == User.id)\
+     .filter(Product.id == product_id)\
+     .first()
     
-    if product is None:
+    if product_raw is None:
         flash("Product not found.")
         return redirect(url_for('products'))
+    
+    # Convert to dictionary
+    product = dict(product_raw._mapping)
+    
+    # Also need the actual Product object for auction checks
+    product_obj = Product.query.get(product_id)
+
+    # Also need the actual Product object for auction checks
+    product_obj = Product.query.get(product_id)
 
     # Auction-specific data
     bid_history = []
@@ -296,8 +324,9 @@ def product_detail(product_id):
     user_highest_bid = None
     is_auction_ended = False
     time_remaining = None
+    time_remaining_str = None
     
-    if product.is_auction:
+    if product.get('is_auction'):
         # Get bid history
         bid_history = db.session.query(Bid, User.username)\
             .join(User, Bid.user_id == User.id)\
@@ -309,13 +338,34 @@ def product_detail(product_id):
         # Get winning bid
         winning_bid = Bid.query.filter_by(product_id=product_id, is_winning=1).first()
         
-        # Check if auction ended
-        if product.auction_end and product.auction_end <= datetime.utcnow():
-            is_auction_ended = True
-        else:
-            # Calculate time remaining
-            if product.auction_end:
-                time_remaining = product.auction_end - datetime.utcnow()
+        # Check if auction ended and calculate time remaining
+        if product.get('auction_end'):
+            # Parse the auction end time string to datetime
+            from datetime import datetime as dt
+            try:
+                auction_end_dt = dt.strptime(product['auction_end'], '%Y-%m-%d %H:%M:%S')
+                now = dt.utcnow()
+                
+                if auction_end_dt <= now:
+                    is_auction_ended = True
+                else:
+                    # Calculate time remaining
+                    time_remaining = auction_end_dt - now
+                    
+                    # Format time remaining as human-readable string
+                    days = time_remaining.days
+                    hours, remainder = divmod(time_remaining.seconds, 3600)
+                    minutes, seconds = divmod(remainder, 60)
+                    
+                    if days > 0:
+                        time_remaining_str = f"{days}d {hours}h {minutes}m"
+                    elif hours > 0:
+                        time_remaining_str = f"{hours}h {minutes}m"
+                    else:
+                        time_remaining_str = f"{minutes}m {seconds}s"
+            except (ValueError, TypeError):
+                # Invalid date format
+                time_remaining_str = "Unknown"
         
         # Get user's highest bid if logged in
         uid = session.get('user_id')
@@ -338,11 +388,15 @@ def product_detail(product_id):
     ).filter(Review.product_id == product_id, Review.is_approved == 1).first()
     
     # Related products (same category)
-    related_products = Product.query\
-        .filter(Product.category == product.category, Product.id != product_id, Product.stock > 0)\
-        .order_by(func.random())\
-        .limit(4)\
-        .all()
+    related_products_raw = db.session.query(
+        Product.id, Product.title, Product.price, Product.stock, Product.image_url,
+        Product.category, User.business_name
+    ).outerjoin(User, Product.seller_id == User.id)\
+     .filter(Product.category == product.get('category'), Product.id != product_id, Product.stock > 0)\
+     .order_by(func.random())\
+     .limit(4)\
+     .all()
+    related_products = [dict(row._mapping) for row in related_products_raw]
     
     # Check if user favorited this
     is_favorited = False
@@ -373,7 +427,7 @@ def product_detail(product_id):
                          winning_bid=winning_bid,
                          user_highest_bid=user_highest_bid,
                          is_auction_ended=is_auction_ended,
-                         time_remaining=time_remaining)
+                         time_remaining=time_remaining_str)
 
 @app.route('/product/<int:product_id>/review', methods=['POST'])
 @login_required
@@ -450,13 +504,14 @@ def cart_view():
                 })
     total_items, total_amount = cart_total_items_and_amount(cart)
     
-    # Fetch recently viewed products
+    # Fetch recently viewed products (exclude out of stock)
     recently_viewed = []
     user_id = session.get('user_id')
     if user_id:
         recently_viewed = db.session.query(Product)\
             .join(ProductView)\
             .filter(ProductView.user_id == user_id)\
+            .filter(Product.stock > 0)\
             .distinct(Product.id)\
             .order_by(desc(ProductView.viewed_at))\
             .limit(8)\
@@ -1522,11 +1577,12 @@ def recently_viewed():
         flash("Please log in to see your recently viewed products.", "info")
         return redirect(url_for('login'))
     
+    # Show in-stock items first, then out-of-stock
     products = db.session.query(Product, ProductView.viewed_at)\
         .join(ProductView, ProductView.product_id == Product.id)\
         .filter(ProductView.user_id == user_id)\
         .distinct(Product.id)\
-        .order_by(desc(ProductView.viewed_at))\
+        .order_by(desc(Product.stock > 0), desc(ProductView.viewed_at))\
         .limit(20)\
         .all()
     
@@ -1583,10 +1639,10 @@ def place_bid(product_id):
         flash("Invalid bid amount.", "danger")
         return redirect(url_for('product_detail', product_id=product_id))
     
-    # Validate bid amount
-    min_bid = product.current_bid + 1 if product.current_bid else product.starting_bid
+    # Validate bid amount with $5 minimum increment
+    min_bid = (product.current_bid + 5) if product.current_bid else product.starting_bid
     if bid_amount < min_bid:
-        flash(f"Bid must be at least ${min_bid:.2f}", "danger")
+        flash(f"Bid must be at least ${min_bid:.2f} (minimum $5 increment)", "danger")
         return redirect(url_for('product_detail', product_id=product_id))
     
     # Check if there's a buy now price and user wants to buy now

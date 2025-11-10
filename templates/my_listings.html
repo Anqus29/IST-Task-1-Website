@@ -8,8 +8,10 @@
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
     <style>
         :root {
-            --primary-color: #00a87e;
-            --secondary-color: #f7f7f7;
+            --primary-color: #1e5a8e;
+            --ocean-blue: #006994;
+            --accent-color: #FF6B35;
+            --secondary-color: #f0f8ff;
             --text-color: #2c3e50;
         }
 
@@ -25,11 +27,24 @@
             margin-bottom: 20px;
             padding: 15px;
             transition: transform 0.2s;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
         }
 
         .listing-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .listing-card .description-text {
+            min-height: 60px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .listing-card .btn-container {
+            margin-top: auto;
         }
 
         .btn-primary {
@@ -90,11 +105,11 @@
                 {% for p in products %}
                     <div class="col-md-6 col-lg-4 mb-4">
                         <div class="listing-card position-relative">
-                            {% if p['stock'] is not none %}
-                                {% if p['stock'] <= 0 %}
+                            {% if p.stock is not none %}
+                                {% if p.stock <= 0 %}
                                     <span class="stock-badge out-of-stock">Out of Stock</span>
-                                {% elif p['stock'] < 5 %}
-                                    <span class="stock-badge low-stock">{{ p['stock'] }} left</span>
+                                {% elif p.stock < 5 %}
+                                    <span class="stock-badge low-stock">{{ p.stock }} left</span>
                                 {% else %}
                                     <span class="stock-badge in-stock">In Stock</span>
                                 {% endif %}
@@ -102,37 +117,43 @@
 
                             <!-- Product Image -->
                             <div class="mb-2 text-center">
-                                {% if 'image_url' in p.keys() and p['image_url'] %}
-                                    {% set img = p['image_url'] %}
+                                {% if p.image_url %}
+                                    {% set img = p.image_url %}
                                     {% if img.startswith('http://') or img.startswith('https://') or img.startswith('/') %}
-                                        <img src="{{ img }}" alt="{{ p['title'] }}" style="max-height:160px; width:100%; object-fit:contain; background:#fff; border:1px solid #eee; padding:6px; border-radius:5px;">
+                                        <img src="{{ img }}" alt="{{ p.title }}" style="max-height:160px; width:100%; object-fit:contain; background:#fff; border:1px solid #eee; padding:6px; border-radius:5px;">
                                     {% else %}
-                                        <img src="{{ url_for('static', filename='img/' ~ img) }}" alt="{{ p['title'] }}" style="max-height:160px; width:100%; object-fit:contain; background:#fff; border:1px solid #eee; padding:6px; border-radius:5px;">
+                                        <img src="{{ url_for('static', filename='img/' ~ img) }}" alt="{{ p.title }}" style="max-height:160px; width:100%; object-fit:contain; background:#fff; border:1px solid #eee; padding:6px; border-radius:5px;">
                                     {% endif %}
                                 {% else %}
-                                    <img src="https://via.placeholder.com/300x200/e9ecef/6c757d?text={{ p['title'][:20] }}" alt="{{ p['title'] }}" style="max-height:160px; width:100%; object-fit:contain; border:1px solid #eee; padding:6px; border-radius:5px;">
+                                    <img src="https://via.placeholder.com/300x200/e9ecef/6c757d?text={{ p.title[:20] }}" alt="{{ p.title }}" style="max-height:160px; width:100%; object-fit:contain; border:1px solid #eee; padding:6px; border-radius:5px;">
                                 {% endif %}
                             </div>
 
-                            <h5 class="mb-2">{{ p['title'] }}</h5>
+                            <h5 class="mb-2">{{ p.title }}</h5>
                             
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <p class="text-success mb-0 h5">${{ '%.2f'|format(p['price']) }}</p>
-                                {% if 'category' in p.keys() and p['category'] %}
-                                    <span class="badge bg-secondary">{{ p['category'] }}</span>
+                                <p class="text-success mb-0 h5">${{ '%.2f'|format(p.price) }}</p>
+                                {% if p.category %}
+                                    <span class="badge bg-secondary">{{ p.category }}</span>
                                 {% endif %}
                             </div>
 
-                            {% if p['description'] %}
-                                <p class="text-muted small mb-3">{{ (p['description'] or '')[:100] }}{% if (p['description'] or '')|length > 100 %}...{% endif %}</p>
-                            {% endif %}
-
-                            <div class="text-muted small mb-2">
-                                Posted: {{ (p['created_at'] or '')[:10] }}
+                            <div class="description-text">
+                                {% if p.description %}
+                                    <p class="text-muted small mb-3">{{ (p.description or '')[:100] }}{% if (p.description or '')|length > 100 %}...{% endif %}</p>
+                                {% else %}
+                                    <p class="text-muted small mb-3">&nbsp;</p>
+                                {% endif %}
                             </div>
 
-                            <div class="d-grid gap-2">
-                                <a href="{{ url_for('product_detail', product_id=p['id']) }}" class="btn btn-sm btn-primary">
+                            <div class="text-muted small mb-3">
+                                {% if p.created_at %}
+                                    Posted: {{ p.created_at.strftime('%Y-%m-%d') }}
+                                {% endif %}
+                            </div>
+
+                            <div class="d-grid gap-2 btn-container">
+                                <a href="{{ url_for('product_detail', product_id=p.id) }}" class="btn btn-sm btn-primary">
                                     👁️ View Listing
                                 </a>
                             </div>

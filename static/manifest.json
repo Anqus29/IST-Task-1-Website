@@ -1,11 +1,11 @@
 {
-  "name": "Secret Bay Marketplace",
-  "short_name": "Secret Bay",
-  "description": "Buy and sell in your local community",
+  "name": "SailBay - Boats & Sailing Gear",
+  "short_name": "SailBay",
+  "description": "Marketplace for boats, sailboats, and marine equipment",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#00a87e",
+  "theme_color": "#1e5a8e",
   "orientation": "portrait-primary",
   "icons": [
     {
