@@ -13,17 +13,34 @@
             --accent-color: #FF6B35;
             --text-color: #2c3e50;
             --ocean-blue: #006994;
+            --bg-color: #ffffff;
+            --card-bg: #ffffff;
+            --border-color: #e9ecef;
+        }
+
+        /* Dark Mode - Ocean Night Theme */
+        [data-theme="dark"] {
+            --primary-color: #4a90e2;
+            --secondary-color: #0a1929;
+            --accent-color: #FF8C5A;
+            --text-color: #e0e0e0;
+            --ocean-blue: #1e5a8e;
+            --wave-color: #2c5f8d;
+            --bg-color: #0d1b2a;
+            --card-bg: #1b2838;
+            --border-color: #2d3748;
         }
 
         body {
-            background-color: var(--secondary-color);
+            background-color: var(--bg-color);
             color: var(--text-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         .search-bar {
-            background: white;
+            background: var(--card-bg);
             padding: 20px;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid var(--border-color);
             margin-bottom: 20px;
             position: sticky;
             top: 0;
@@ -32,18 +49,19 @@
         }
 
         .listing-card {
-            background: white;
+            background: var(--card-bg);
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             margin-bottom: 20px;
             padding: 15px;
-            transition: transform 0.2s;
+            transition: transform 0.2s, background-color 0.3s ease;
             position: relative;
+            border: 1px solid var(--border-color);
         }
 
         .listing-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
 
         .price {
@@ -53,7 +71,8 @@
         }
 
         .date-posted {
-            color: #666;
+            color: var(--text-color);
+            opacity: 0.6;
             font-size: 0.9rem;
         }
 
@@ -87,6 +106,21 @@
             border-radius: 5px;
             font-size: 0.85rem;
             font-weight: bold;
+        }
+        
+        /* Form controls dark mode */
+        [data-theme="dark"] .form-control,
+        [data-theme="dark"] .form-select {
+            background-color: var(--secondary-color);
+            border-color: var(--border-color);
+            color: var(--text-color);
+        }
+        
+        [data-theme="dark"] .form-control:focus,
+        [data-theme="dark"] .form-select:focus {
+            background-color: var(--secondary-color);
+            border-color: var(--primary-color);
+            color: var(--text-color);
         }
 
         /* Mobile Responsive Styles */

@@ -1,30 +1,30 @@
-<footer class="bg-light mt-5 py-4 border-top">
+<footer class="mt-5 py-4 border-top" style="background-color: var(--card-bg); border-color: var(--border-color) !important;">
   <div class="container">
     <div class="row">
       <div class="col-md-4 mb-3">
-  <h5>SailBay</h5>
-  <p class="text-muted small">Boats, sailboats, and quality sailing gear.</p>
+  <h5 style="color: var(--primary-color);">SailBay</h5>
+  <p class="small" style="color: var(--text-color); opacity: 0.7;">Boats, sailboats, and quality sailing gear.</p>
       </div>
       <div class="col-md-4 mb-3">
-        <h6>Quick Links</h6>
+        <h6 style="color: var(--text-color);">Quick Links</h6>
         <ul class="list-unstyled small">
-          <li><a href="{{ url_for('index') }}" class="text-decoration-none text-muted">Home</a></li>
-          <li><a href="{{ url_for('products') }}" class="text-decoration-none text-muted">Browse Listings</a></li>
-          <li><a href="{{ url_for('about') }}" class="text-decoration-none text-muted">About Us</a></li>
+          <li><a href="{{ url_for('index') }}" class="text-decoration-none" style="color: var(--text-color); opacity: 0.7;">Home</a></li>
+          <li><a href="{{ url_for('products') }}" class="text-decoration-none" style="color: var(--text-color); opacity: 0.7;">Browse Listings</a></li>
+          <li><a href="{{ url_for('about') }}" class="text-decoration-none" style="color: var(--text-color); opacity: 0.7;">About Us</a></li>
         </ul>
       </div>
       <div class="col-md-4 mb-3">
-        <h6>Support</h6>
+        <h6 style="color: var(--text-color);">Support</h6>
         <ul class="list-unstyled small">
-          <li><a href="{{ url_for('help') }}" class="text-decoration-none text-muted">Help Center</a></li>
-          <li><a href="{{ url_for('contact') }}" class="text-decoration-none text-muted">Contact Us</a></li>
-          <li><a href="{{ url_for('privacy') }}" class="text-decoration-none text-muted">Privacy Policy</a></li>
-          <li><a href="{{ url_for('terms') }}" class="text-decoration-none text-muted">Terms of Service</a></li>
+          <li><a href="{{ url_for('help') }}" class="text-decoration-none" style="color: var(--text-color); opacity: 0.7;">Help Center</a></li>
+          <li><a href="{{ url_for('contact') }}" class="text-decoration-none" style="color: var(--text-color); opacity: 0.7;">Contact Us</a></li>
+          <li><a href="{{ url_for('privacy') }}" class="text-decoration-none" style="color: var(--text-color); opacity: 0.7;">Privacy Policy</a></li>
+          <li><a href="{{ url_for('terms') }}" class="text-decoration-none" style="color: var(--text-color); opacity: 0.7;">Terms of Service</a></li>
         </ul>
       </div>
     </div>
-    <hr>
-    <div class="text-center text-muted small">
+    <hr style="border-color: var(--border-color);">
+    <div class="text-center small" style="color: var(--text-color); opacity: 0.7;">
   &copy; 2025 SailBay. All rights reserved.
     </div>
   </div>

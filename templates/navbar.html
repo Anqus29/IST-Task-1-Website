@@ -1,4 +1,4 @@
-<nav class="navbar navbar-expand-lg navbar-light bg-white mb-3" aria-label="Main navigation" style="position: sticky; top: 0; z-index: 1030; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-3" aria-label="Main navigation" style="position: sticky; top: 0; z-index: 1030; box-shadow: 0 2px 8px rgba(0,0,0,0.3); background-color: var(--card-bg, #1b2838) !important; border-bottom: 2px solid var(--primary-color, #4a90e2);">
   <div class="container">
     <!-- Sidebar Toggle Button - Always visible -->
     <button class="btn btn-outline-secondary me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#userSidebar" aria-controls="userSidebar">
@@ -390,6 +390,38 @@
   
   <!-- Mobile Responsive Styles -->
   <style>
+    /* Dark mode offcanvas styling */
+    [data-theme="dark"] .offcanvas {
+      background-color: var(--card-bg, #1b2838);
+      color: var(--text-color, #e0e0e0);
+    }
+    
+    [data-theme="dark"] .offcanvas-header {
+      border-bottom: 1px solid var(--border-color, #2d3748);
+    }
+    
+    [data-theme="dark"] .list-group-item {
+      background-color: var(--card-bg, #1b2838);
+      color: var(--text-color, #e0e0e0);
+      border-color: var(--border-color, #2d3748);
+    }
+    
+    [data-theme="dark"] .list-group-item.bg-light {
+      background-color: var(--secondary-color, #0a1929) !important;
+      color: var(--text-color, #888) !important;
+    }
+    
+    [data-theme="dark"] .list-group-item-action:hover,
+    [data-theme="dark"] .list-group-item-action:focus {
+      background-color: var(--secondary-color, #0a1929);
+      color: var(--primary-color, #4a90e2);
+    }
+    
+    [data-theme="dark"] .navbar-collapse {
+      background-color: var(--card-bg, #1b2838) !important;
+      border: 1px solid var(--border-color, #2d3748);
+    }
+    
     /* Keep navbar content on one row across all pages */
     .navbar .container {
       display: flex;
@@ -400,6 +432,8 @@
 
     .navbar-brand { 
       flex-shrink: 0;
+      color: var(--primary-color, #4a90e2) !important;
+      font-weight: 600;
     }
 
     /* Compact sidebar and cart buttons - square shape */
@@ -411,6 +445,14 @@
       align-items: center;
       justify-content: center;
       border-radius: 8px;
+      border-color: var(--border-color, #2d3748);
+      color: var(--text-color, #e0e0e0);
+    }
+    
+    .navbar .btn-outline-secondary:hover {
+      background-color: var(--primary-color, #4a90e2);
+      border-color: var(--primary-color, #4a90e2);
+      color: white;
     }
 
     .navbar .btn-sm {
@@ -498,16 +540,49 @@
       });
     }
     
-    // Dark Mode Toggle
+    // Dark Mode Toggle - Detect browser preference or use saved preference
     (function() {
       const darkModeToggle = document.getElementById('darkModeToggle');
       const html = document.documentElement;
       
-      // Check for saved preference
+      // Check for saved preference first, otherwise use browser preference
       const savedTheme = localStorage.getItem('theme');
-      if (savedTheme === 'dark') {
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      
+      if (savedTheme === 'light') {
+        html.removeAttribute('data-theme');
+        updateIcon(false);
+      } else if (savedTheme === 'dark') {
         html.setAttribute('data-theme', 'dark');
         updateIcon(true);
+      } else {
+        // No saved preference - use browser/system preference
+        if (prefersDark) {
+          html.setAttribute('data-theme', 'dark');
+          localStorage.setItem('theme', 'dark');
+          updateIcon(true);
+        } else {
+          html.removeAttribute('data-theme');
+          localStorage.setItem('theme', 'light');
+          updateIcon(false);
+        }
+      }
+      
+      // Listen for system theme changes
+      if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+          // Only auto-switch if user hasn't manually set a preference
+          const currentSaved = localStorage.getItem('theme');
+          if (!currentSaved) {
+            if (e.matches) {
+              html.setAttribute('data-theme', 'dark');
+              updateIcon(true);
+            } else {
+              html.removeAttribute('data-theme');
+              updateIcon(false);
+            }
+          }
+        });
       }
       
       if (darkModeToggle) {
