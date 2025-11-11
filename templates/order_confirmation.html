@@ -24,7 +24,22 @@
         {% set total = 0 %}
         {% for it in items %}
           <tr>
-            <td>{{ it['title'] }}</td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <!-- Product Image -->
+                {% if it['image_url'] %}
+                  {% set img = it['image_url'] %}
+                  {% if img.startswith('http://') or img.startswith('https://') or img.startswith('/') %}
+                    <img src="{{ img }}" alt="{{ it['title'] }}" style="width: 50px; height: 50px; object-fit: contain; border: 1px solid #ddd; border-radius: 4px; padding: 4px;">
+                  {% else %}
+                    <img src="{{ url_for('static', filename='img/' ~ img) }}" alt="{{ it['title'] }}" style="width: 50px; height: 50px; object-fit: contain; border: 1px solid #ddd; border-radius: 4px; padding: 4px;">
+                  {% endif %}
+                {% else %}
+                  <img src="https://via.placeholder.com/50x50?text=?" alt="{{ it['title'] }}" style="width: 50px; height: 50px; object-fit: contain; border: 1px solid #ddd; border-radius: 4px;">
+                {% endif %}
+                <span>{{ it['title'] }}</span>
+              </div>
+            </td>
             <td>{{ it['quantity'] }}</td>
             <td>${{ '%.2f'|format(it['unit_price']) }}</td>
             <td>${{ '%.2f'|format(it['unit_price'] * it['quantity']) }}</td>

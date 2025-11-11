@@ -50,11 +50,33 @@
   <div class="container">
     <h1>Checkout</h1>
     <h4>Order summary</h4>
-    <ul>
+    <div class="list-group mb-3">
       {% for it in items %}
-        <li>{{ it.quantity }} × {{ it.product['title'] }} — ${{ '%.2f'|format(it.line_total) }}</li>
+        <div class="list-group-item d-flex align-items-center gap-3">
+          <!-- Product Image -->
+          {% if it.product['image_url'] %}
+            {% set img = it.product['image_url'] %}
+            {% if img.startswith('http://') or img.startswith('https://') or img.startswith('/') %}
+              <img src="{{ img }}" alt="{{ it.product['title'] }}" style="width: 60px; height: 60px; object-fit: contain; border: 1px solid #ddd; border-radius: 4px; padding: 4px;">
+            {% else %}
+              <img src="{{ url_for('static', filename='img/' ~ img) }}" alt="{{ it.product['title'] }}" style="width: 60px; height: 60px; object-fit: contain; border: 1px solid #ddd; border-radius: 4px; padding: 4px;">
+            {% endif %}
+          {% else %}
+            <img src="https://via.placeholder.com/60x60?text=?" alt="{{ it.product['title'] }}" style="width: 60px; height: 60px; object-fit: contain; border: 1px solid #ddd; border-radius: 4px;">
+          {% endif %}
+          
+          <div class="flex-grow-1">
+            <div class="fw-bold">{{ it.product['title'] }}</div>
+            <small class="text-muted">Quantity: {{ it.quantity }}</small>
+          </div>
+          
+          <div class="text-end">
+            <div class="fw-bold text-success">${{ '%.2f'|format(it.line_total) }}</div>
+            <small class="text-muted">${{ '%.2f'|format(it.product['price']) }} each</small>
+          </div>
+        </div>
       {% endfor %}
-    </ul>
+    </div>
     <p><strong>Total: ${{ '%.2f'|format(total_amount) }}</strong></p>
 
     <form method="post" id="checkout-form">

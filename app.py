@@ -160,6 +160,18 @@ def index():
         'total_sellers': db.session.query(func.count(distinct(Product.seller_id))).scalar() or 0,
         'total_users': User.query.count()
     }
+
+    # Fetch most popular products (by view_count, in stock) for ocean animation
+    popular_raw = db.session.query(
+        Product.id, Product.title, Product.price, Product.stock,
+        Product.image_url, Product.category, Product.view_count
+    ).filter(Product.stock > 0)
+    # Basic heuristic: require at least 1 view, order by view_count desc then newest
+    popular_raw = popular_raw.filter((Product.view_count.isnot(None)) & (Product.view_count > 0))\
+        .order_by(desc(Product.view_count), desc(Product.created_at))\
+        .limit(12)\
+        .all()
+    popular_products = [dict(row._mapping) for row in popular_raw]
     
     # Fetch recently viewed products (exclude out of stock)
     recently_viewed = []
@@ -179,7 +191,7 @@ def index():
          .all()
         recently_viewed = [dict(row._mapping) for row in recently_viewed_raw]
     
-    return render_template('index.html', featured_products=featured, recently_viewed=recently_viewed, stats=stats)
+    return render_template('index.html', featured_products=featured, recently_viewed=recently_viewed, stats=stats, popular_products=popular_products)
 
 @app.route('/about')
 def about():
@@ -830,10 +842,11 @@ def order_confirmation(order_id):
         flash("Order not found.")
         return redirect(url_for('index'))
 
-    items = db.session.query(OrderItem, Product.title)\
+    items_raw = db.session.query(OrderItem.quantity, OrderItem.unit_price, Product.title, Product.image_url)\
         .join(Product, OrderItem.product_id == Product.id)\
         .filter(OrderItem.order_id == order_id)\
         .all()
+    items = [dict(row._mapping) for row in items_raw]
     
     return render_template('order_confirmation.html', order=order, items=items)
 
@@ -1086,7 +1099,7 @@ def admin_order_detail(order_id):
         flash("Order not found.")
         return redirect(url_for('admin_orders'))
 
-    items_raw = db.session.query(OrderItem.quantity, OrderItem.unit_price, Product.title)\
+    items_raw = db.session.query(OrderItem.quantity, OrderItem.unit_price, Product.title, Product.image_url)\
         .join(Product, OrderItem.product_id == Product.id)\
         .filter(OrderItem.order_id == order_id)\
         .all()

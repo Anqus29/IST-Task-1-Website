@@ -5,6 +5,42 @@ from werkzeug.security import generate_password_hash
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "webstore.db")
 
+# Mapping of categories to example image URLs
+CATEGORY_IMAGES = {
+    'Sailboats': 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400',
+    'Motorboats': 'https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?w=400',
+    'Yachts': 'https://images.unsplash.com/photo-1605281317010-fe5ffe798166?w=400',
+    'Kayaks': 'https://images.unsplash.com/photo-1617469767053-d3b523a0d982?w=400',
+    'Jet Skis': 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400',
+    'Fishing Boats': 'https://images.unsplash.com/photo-1544551763-77ef2d0cfc6c?w=400',
+    'Pontoon Boats': 'https://images.unsplash.com/photo-1605281317010-fe5ffe798166?w=400',
+    'Canoes': 'https://images.unsplash.com/photo-1618170101020-acccaaba0000?w=400',
+    'Dinghies': 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400',
+    'Parts': 'https://images.unsplash.com/photo-1621847468516-59f7c82e1d4b?w=400',
+    'Accessories': 'https://images.unsplash.com/photo-1580674285054-bed31e145f59?w=400',
+    'Safety Equipment': 'https://images.unsplash.com/photo-1621847468516-59f7c82e1d4b?w=400',
+    'Navigation': 'https://images.unsplash.com/photo-1543722530-d2c3201371e7?w=400',
+    'Electronics': 'https://images.unsplash.com/photo-1517420704952-d9f39e95b43e?w=400',
+    'Sails': 'https://images.unsplash.com/photo-1473496169904-658ba7c44d8a?w=400',
+    'Anchors': 'https://images.unsplash.com/photo-1621847468516-59f7c82e1d4b?w=400',
+    'Ropes & Lines': 'https://images.unsplash.com/photo-1580674285054-bed31e145f59?w=400',
+    'Maintenance': 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=400',
+    'Clothing': 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400',
+    'Other': 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400',
+}
+
+# Alternative boat images for variety
+BOAT_IMAGES = [
+    'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400',  # sailboat
+    'https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?w=400',  # yacht
+    'https://images.unsplash.com/photo-1605281317010-fe5ffe798166?w=400',  # luxury yacht
+    'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400',  # speedboat
+    'https://images.unsplash.com/photo-1544551763-77ef2d0cfc6c?w=400',  # fishing boat
+    'https://images.unsplash.com/photo-1473496169904-658ba7c44d8a?w=400',  # sailing
+    'https://images.unsplash.com/photo-1617469767053-d3b523a0d982?w=400',  # kayak
+    'https://images.unsplash.com/photo-1618170101020-acccaaba0000?w=400',  # canoe
+]
+
 CREATE_SCHEMA = """
 PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS users (
@@ -354,7 +390,54 @@ def initialize_db():
     print(f"✅ Added {len(SAMPLE_PRODUCTS)} sailing products (boats, sails, rigging, safety gear, accessories)")
     print(f"✅ Added {len(SAMPLE_AUCTIONS) + len(DETAILED_AUCTIONS)} auction products (sailing equipment)")
     print(f"✅ Added {len(SAMPLE_BIDS)} sample bid(s)")
+    
+    # Update product images
+    update_product_images()
+    
     print("🎯 Ready to test! Run: python app.py")
+
+def update_product_images():
+    """Update ALL products with working external image URLs"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    # Get all products
+    cursor.execute("SELECT id, title, category, image_url FROM products")
+    products = cursor.fetchall()
+    
+    updated_count = 0
+    
+    for i, product in enumerate(products):
+        product_id = product['id']
+        title = product['title']
+        category = product['category'] or 'Other'
+        current_image = product['image_url']
+        
+        # Get image based on category
+        # For boats, rotate through different boat images for variety
+        if category in ['Sailboats', 'Motorboats', 'Yachts', 'Fishing Boats', 'Pontoon Boats', 'Dinghies']:
+            image_url = BOAT_IMAGES[i % len(BOAT_IMAGES)]
+        else:
+            # Use category-specific image or default
+            image_url = CATEGORY_IMAGES.get(category, CATEGORY_IMAGES['Other'])
+        
+        # Update the product (ensure working URLs)
+        cursor.execute("UPDATE products SET image_url = ? WHERE id = ?", (image_url, product_id))
+        updated_count += 1
+    
+    conn.commit()
+    
+    # Print summary
+    cursor.execute("SELECT COUNT(*) as total FROM products")
+    total = cursor.fetchone()['total']
+    
+    cursor.execute("SELECT COUNT(*) as with_images FROM products WHERE image_url IS NOT NULL AND image_url != ''")
+    with_images = cursor.fetchone()['with_images']
+    
+    print(f"✅ Updated {updated_count} products with working image URLs ({with_images}/{total} have images)")
+    
+    conn.close()
 
 if __name__ == "__main__":
     initialize_db()

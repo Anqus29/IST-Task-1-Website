@@ -170,7 +170,22 @@
         <tbody>
           {% for it in items %}
             <tr>
-              <td>{{ it.product['title'] }}</td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <!-- Product Image -->
+                  {% if it.product['image_url'] %}
+                    {% set img = it.product['image_url'] %}
+                    {% if img.startswith('http://') or img.startswith('https://') or img.startswith('/') %}
+                      <img src="{{ img }}" alt="{{ it.product['title'] }}" style="width: 60px; height: 60px; object-fit: contain; border: 1px solid #ddd; border-radius: 4px; padding: 4px;">
+                    {% else %}
+                      <img src="{{ url_for('static', filename='img/' ~ img) }}" alt="{{ it.product['title'] }}" style="width: 60px; height: 60px; object-fit: contain; border: 1px solid #ddd; border-radius: 4px; padding: 4px;">
+                    {% endif %}
+                  {% else %}
+                    <img src="https://via.placeholder.com/60x60?text=?" alt="{{ it.product['title'] }}" style="width: 60px; height: 60px; object-fit: contain; border: 1px solid #ddd; border-radius: 4px;">
+                  {% endif %}
+                  <span>{{ it.product['title'] }}</span>
+                </div>
+              </td>
               <td>${{ '%.2f'|format(it.product['price']) }}</td>
               <td><input type="number" name="qty_{{ it.product['id'] }}" value="{{ it.quantity }}" min="0" style="width:80px;" class="form-control form-control-sm"></td>
               <td>${{ '%.2f'|format(it.line_total) }}</td>
