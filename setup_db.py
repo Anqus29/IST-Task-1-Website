@@ -197,26 +197,53 @@ SAMPLE_USERS = [
 
 SAMPLE_PRODUCTS = [
     # seller_id, title, description, price, stock, category, image_url
-    # Sailboats
-    (1, "14ft Fiberglass Daysailer", "Stable daysailer ideal for learning and weekend fun. Easy to handle single-handed.", 2500.00, 1, "Sailboats", "boat1.jpg"),
-    (3, "22ft Cruising Sloop", "Comfortable cruiser with cabin, perfect for coastal adventures.", 12500.00, 1, "Sailboats", "boat2.jpg"),
-    # Sails
-    (1, "Spinnaker Sail 30ft", "Lightweight nylon spinnaker in good, serviceable condition.", 450.00, 2, "Sails", "sail1.jpg"),
-    (3, "Main Sail 25ft", "Dacron mainsail with two reef points, excellent shape.", 890.00, 3, "Sails", "sail2.jpg"),
-    (1, "Storm Jib 20ft", "Heavy-duty storm jib for rough weather sailing.", 320.00, 4, "Sails", "sail3.jpg"),
-    # Rigging
-    (1, "Stainless Steel Anchor 10kg", "High holding-power plow anchor suitable for 25-30ft boats.", 120.00, 10, "Rigging", "anchor1.jpg"),
-    (3, "Rope Halyard Set", "Complete halyard set with shackles for 30ft sailboat.", 215.00, 8, "Rigging", "rigging1.jpg"),
-    (1, "Turnbuckle Kit", "Stainless steel turnbuckles for shroud adjustment.", 85.00, 15, "Rigging", "turnbuckle1.jpg"),
-    # Safety
-    (1, "Automatic Inflatable Life Jacket", "CO2 automatic/manual inflation PFD (Type V).", 89.99, 15, "Safety", "pfd1.jpg"),
-    (3, "Flare Kit", "Complete offshore flare kit with SOLAS-approved flares.", 125.00, 7, "Safety", "flare1.jpg"),
-    (1, "EPIRB Emergency Beacon", "406 MHz EPIRB with GPS for emergency situations.", 350.00, 5, "Safety", "epirb1.jpg"),
-    # Gear & Accessories
-    (1, "Marine GPS Chartplotter", "Compact GPS with coastal charts and waypoint tracking.", 699.00, 5, "Gear", "gps1.jpg"),
-    (3, "Sailing Gloves - Kevlar", "Professional racing gloves with grip and finger protection.", 45.00, 20, "Accessories", "gloves1.jpg"),
-    (1, "Anchor Windlass Electric", "12V electric windlass for easy anchor deployment.", 550.00, 3, "Accessories", "windlass1.jpg"),
-    (3, "Teak Deck Grating", "Marine-grade teak grating panels for cockpit.", 180.00, 6, "Accessories", "teak1.jpg")
+    # Sailboats & Boats (rotating through 6 images)
+    (1, "Classic 20ft Sailing Yacht", "Beautiful classic yacht with mahogany trim. Perfect for weekend coastal cruising. Recently serviced, ready to sail.", 15500.00, 1, "Sailboats", "/static/img/product1.jpg"),
+    (3, "14ft Racing Dinghy", "Competition-ready racing dinghy. Fast and responsive, ideal for club racing or training.", 3200.00, 2, "Sailboats", "/static/img/product2.jpg"),
+    (1, "Luxury 28ft Cruiser", "Spacious cruiser with full cabin amenities. Sleeps 4, galley, head, and navigation station.", 28900.00, 1, "Yachts", "/static/img/product3.jpg"),
+    (3, "16ft Catamaran", "Stable and fast catamaran perfect for beach sailing. Easy to trailer and launch.", 5800.00, 1, "Sailboats", "/static/img/product4.jpg"),
+    (1, "Vintage Wooden Sloop", "Restored 1960s wooden sloop. Beautiful lines, excellent condition. A real head-turner.", 12000.00, 1, "Sailboats", "/static/img/product5.jpg"),
+    (3, "Performance Racing Yacht", "High-performance racing yacht with carbon fiber mast. Competitive and well-maintained.", 35000.00, 1, "Yachts", "/static/img/product6.jpg"),
+    
+    # Sails & Rigging (cycling through images)
+    (1, "Competition Spinnaker 35ft", "Lightweight racing spinnaker in excellent condition. Perfect for downwind sailing.", 850.00, 2, "Sails", "/static/img/product1.jpg"),
+    (3, "Cruising Mainsail 30ft", "Dacron cruising mainsail with three reef points. UV protected, like new.", 1450.00, 3, "Sails", "/static/img/product2.jpg"),
+    (1, "Storm Jib Heavy Duty", "High-quality storm jib for heavy weather. Essential offshore safety equipment.", 520.00, 4, "Sails", "/static/img/product3.jpg"),
+    (3, "Genoa Sail 120%", "Large overlapping genoa for light wind performance. Excellent shape retention.", 1280.00, 2, "Sails", "/static/img/product4.jpg"),
+    
+    # Safety Equipment (cycling images)
+    (1, "Automatic Inflatable Life Jacket", "Auto-inflate PFD with harness. Coast Guard approved. Essential safety gear.", 145.00, 12, "Safety", "/static/img/product5.jpg"),
+    (3, "Complete Flare Kit", "Offshore flare kit with hand-held and parachute flares. Current certification.", 185.00, 8, "Safety", "/static/img/product6.jpg"),
+    (1, "EPIRB 406 MHz", "Emergency position beacon with GPS. Registered and tested. Can save your life.", 450.00, 5, "Safety", "/static/img/product1.jpg"),
+    (3, "Life Raft 4-Person", "Self-inflating life raft for 4 people. Recently serviced and certified.", 2800.00, 2, "Safety", "/static/img/product2.jpg"),
+    
+    # Navigation & Electronics (cycling images)
+    (1, "Marine GPS Chartplotter", "Color GPS chartplotter with coastal charts. Easy to use, waterproof.", 895.00, 6, "Electronics", "/static/img/product3.jpg"),
+    (3, "VHF Marine Radio", "Waterproof VHF radio with DSC. Essential communication equipment.", 245.00, 10, "Electronics", "/static/img/product4.jpg"),
+    (1, "Depth Sounder", "Digital depth finder with alarm. Easy installation, accurate readings.", 180.00, 8, "Electronics", "/static/img/product5.jpg"),
+    (3, "Wind Instrument Set", "Complete wind speed and direction display. Essential for racing.", 560.00, 4, "Electronics", "/static/img/product6.jpg"),
+    
+    # Anchors & Ground Tackle (cycling images)
+    (1, "Plow Anchor 15kg", "High holding power anchor suitable for 30-40ft boats. Galvanized steel.", 185.00, 10, "Anchors", "/static/img/product1.jpg"),
+    (3, "Anchor Chain 50ft", "Heavy-duty galvanized chain. 8mm links, perfect for larger boats.", 220.00, 8, "Anchors", "/static/img/product2.jpg"),
+    (1, "Danforth Anchor 12kg", "Lightweight folding anchor ideal for cruising boats. Easy to stow.", 125.00, 12, "Anchors", "/static/img/product3.jpg"),
+    
+    # Accessories & Parts (cycling images)
+    (3, "Sailing Gloves Premium", "Kevlar reinforced sailing gloves. Excellent grip and protection.", 65.00, 25, "Accessories", "/static/img/product4.jpg"),
+    (1, "Electric Windlass", "Powerful 12V windlass for easy anchor handling. Foot switches included.", 680.00, 3, "Accessories", "/static/img/product5.jpg"),
+    (3, "Teak Deck Panels", "Marine-grade teak panels for cockpit flooring. Beautiful and durable.", 240.00, 8, "Accessories", "/static/img/product6.jpg"),
+    (1, "Stainless Steel Cleats", "Pair of heavy-duty cleats. Perfect for mooring or docking.", 45.00, 20, "Parts", "/static/img/product1.jpg"),
+    (3, "Fender Set Marine", "Set of 4 inflatable fenders with rope. Protect your boat during docking.", 95.00, 15, "Accessories", "/static/img/product2.jpg"),
+    
+    # Rope & Lines (cycling images)
+    (1, "Braided Dock Line 50ft", "Premium dock line with spliced eye. UV resistant and strong.", 68.00, 18, "Ropes & Lines", "/static/img/product3.jpg"),
+    (3, "Halyard Rope 100ft", "Low-stretch halyard line. Perfect for raising and lowering sails.", 125.00, 12, "Ropes & Lines", "/static/img/product4.jpg"),
+    (1, "Anchor Rode 200ft", "Complete anchor rode with chain and rope. Ready to deploy.", 285.00, 6, "Ropes & Lines", "/static/img/product5.jpg"),
+    
+    # Clothing & Gear (cycling images)
+    (3, "Offshore Foul Weather Jacket", "Heavy-duty waterproof jacket with hood. Breathable and durable.", 195.00, 10, "Clothing", "/static/img/product6.jpg"),
+    (1, "Sailing Boots Waterproof", "Non-slip sailing boots. Comfortable for long days on deck.", 85.00, 14, "Clothing", "/static/img/product1.jpg"),
+    (3, "Sailing Cap UV Protection", "Wide-brim sailing cap with UV 50+ protection. Adjustable and floatable.", 32.00, 30, "Clothing", "/static/img/product2.jpg")
 ]
 
 # Auction products with special fields - basic ones
@@ -224,12 +251,12 @@ SAMPLE_PRODUCTS = [
 SAMPLE_AUCTIONS = [
     (1, "Laser Racing Dinghy - COMPETITIVE READY", 
      "Competition-ready Laser dinghy in excellent condition with new sail and rigging. Great for racing or learning high-performance sailing. Hull in very good shape with minimal wear. Includes boat cover and launching dolly.",
-     0, 1, "Sailboats", "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400",
+     0, 1, "Sailboats", "/static/img/product3.jpg",
      1, 1200.00, 1200.00, None, 2000.00, 2800.00),  # auction_end will be set to 3 days from now
     
     (3, "VHF Marine Radio with DSC - SAFETY ESSENTIAL",
      "Waterproof VHF marine radio with Digital Selective Calling (DSC) and GPS integration. Essential safety equipment for any boat. Like new condition, barely used.",
-     0, 1, "Gear", "https://images.unsplash.com/photo-1606041011872-596597976b25?w=400",
+     0, 1, "Electronics", "/static/img/product4.jpg",
      1, 189.00, 189.00, None, 250.00, 350.00)
 ]
 
@@ -241,7 +268,7 @@ DETAILED_AUCTIONS = [
         'description': 'Beautiful 1970s 16ft wooden daysailer in excellent sailing condition. Recently revarnished, includes main and jib. A rare find and a head-turner at the marina.',
         'price': 0,
         'stock': 1,
-        'image_url': 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=400',
+        'image_url': '/static/img/product5.jpg',
         'category': 'Sailboats',
         'condition': 'used',
         'location': 'Springfield, SP',
@@ -258,7 +285,7 @@ DETAILED_AUCTIONS = [
         'description': 'Dacron cruising mainsail for 32-34ft boats. Two reef points, excellent condition. Reserve not met yet - bid now!',
         'price': 0,
         'stock': 1,
-        'image_url': 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=400',
+        'image_url': '/static/img/product6.jpg',
         'category': 'Sails',
         'condition': 'new',
         'location': 'Metropolis, MT',
@@ -397,10 +424,20 @@ def initialize_db():
     print("🎯 Ready to test! Run: python app.py")
 
 def update_product_images():
-    """Update ALL products with working external image URLs"""
+    """Update ALL products with local image URLs from static/img folder"""
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
+    
+    # Local images available
+    LOCAL_IMAGES = [
+        '/static/img/product1.jpg',
+        '/static/img/product2.jpg',
+        '/static/img/product3.jpg',
+        '/static/img/product4.jpg',
+        '/static/img/product5.jpg',
+        '/static/img/product6.jpg'
+    ]
     
     # Get all products
     cursor.execute("SELECT id, title, category, image_url FROM products")
@@ -410,21 +447,14 @@ def update_product_images():
     
     for i, product in enumerate(products):
         product_id = product['id']
-        title = product['title']
-        category = product['category'] or 'Other'
         current_image = product['image_url']
         
-        # Get image based on category
-        # For boats, rotate through different boat images for variety
-        if category in ['Sailboats', 'Motorboats', 'Yachts', 'Fishing Boats', 'Pontoon Boats', 'Dinghies']:
-            image_url = BOAT_IMAGES[i % len(BOAT_IMAGES)]
-        else:
-            # Use category-specific image or default
-            image_url = CATEGORY_IMAGES.get(category, CATEGORY_IMAGES['Other'])
-        
-        # Update the product (ensure working URLs)
-        cursor.execute("UPDATE products SET image_url = ? WHERE id = ?", (image_url, product_id))
-        updated_count += 1
+        # If image doesn't start with /static/img/, update it
+        # Rotate through the 6 available images
+        if not current_image or not current_image.startswith('/static/img/'):
+            image_url = LOCAL_IMAGES[i % len(LOCAL_IMAGES)]
+            cursor.execute("UPDATE products SET image_url = ? WHERE id = ?", (image_url, product_id))
+            updated_count += 1
     
     conn.commit()
     
@@ -435,7 +465,7 @@ def update_product_images():
     cursor.execute("SELECT COUNT(*) as with_images FROM products WHERE image_url IS NOT NULL AND image_url != ''")
     with_images = cursor.fetchone()['with_images']
     
-    print(f"✅ Updated {updated_count} products with working image URLs ({with_images}/{total} have images)")
+    print(f"✅ Verified {total} products with local image URLs ({with_images}/{total} have images)")
     
     conn.close()
 

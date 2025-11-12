@@ -169,7 +169,7 @@ def index():
     # Basic heuristic: require at least 1 view, order by view_count desc then newest
     popular_raw = popular_raw.filter((Product.view_count.isnot(None)) & (Product.view_count > 0))\
         .order_by(desc(Product.view_count), desc(Product.created_at))\
-        .limit(12)\
+        .limit(30)\
         .all()
     popular_products = [dict(row._mapping) for row in popular_raw]
     
@@ -208,6 +208,39 @@ def contact():
         flash('Thank you for contacting us! We will respond to your message soon.', 'success')
         return redirect(url_for('contact'))
     return render_template('contact.html')
+
+# Live Search Autocomplete API
+@app.route('/api/search/autocomplete')
+def search_autocomplete():
+    query = request.args.get('q', '').strip()
+    if not query or len(query) < 2:
+        return jsonify([])
+    
+    # Search products by title, description, or category
+    products = db.session.query(
+        Product.id, Product.title, Product.price, Product.image_url, 
+        Product.category, Product.stock
+    ).filter(
+        or_(
+            Product.title.like(f'%{query}%'),
+            Product.description.like(f'%{query}%'),
+            Product.category.like(f'%{query}%')
+        )
+    ).filter(Product.stock > 0)\
+     .order_by(desc(Product.view_count))\
+     .limit(10)\
+     .all()
+    
+    results = [{
+        'id': p.id,
+        'title': p.title,
+        'price': float(p.price),
+        'image_url': p.image_url or '/static/img/placeholder.png',
+        'category': p.category,
+        'url': url_for('product_detail', product_id=p.id)
+    } for p in products]
+    
+    return jsonify(results)
 
 @app.route('/help')
 def help():

@@ -30,9 +30,13 @@
 
     <div class="collapse navbar-collapse" id="mainNav">
       <!-- Search bar - visible on all screens -->
-      <form class="d-flex mx-auto my-2" action="{{ url_for('products') }}" method="get" style="max-width:600px; width:100%;">
-        <input name="search" class="form-control form-control-sm me-2" type="search" placeholder="Search listings..." aria-label="Search" value="{{ request.args.get('search','') }}">
+      <form class="d-flex mx-auto my-2 position-relative" action="{{ url_for('products') }}" method="get" style="max-width:600px; width:100%;">
+        <input id="searchInput" name="search" class="form-control form-control-sm me-2" type="search" placeholder="Search listings..." aria-label="Search" value="{{ request.args.get('search','') }}" autocomplete="off">
         <button class="btn btn-sm btn-primary" type="submit">Search</button>
+        <!-- Autocomplete dropdown -->
+        <div id="searchAutocomplete" class="position-absolute bg-white border rounded shadow-lg" style="top: 100%; left: 0; right: 60px; max-height: 400px; overflow-y: auto; z-index: 1050; display: none;">
+          <!-- Results will be inserted here by JavaScript -->
+        </div>
       </form>
 
       <!-- Desktop buttons - hidden on mobile -->
@@ -631,6 +635,67 @@
           `;
         }
       }
+    })();
+
+    // Live Search Autocomplete
+    (function() {
+      const searchInput = document.getElementById('searchInput');
+      const autocompleteDiv = document.getElementById('searchAutocomplete');
+      let debounceTimer;
+
+      if (!searchInput || !autocompleteDiv) return;
+
+      searchInput.addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        const query = this.value.trim();
+
+        if (query.length < 2) {
+          autocompleteDiv.style.display = 'none';
+          return;
+        }
+
+        debounceTimer = setTimeout(() => {
+          fetch(`/api/search/autocomplete?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(results => {
+              if (results.length === 0) {
+                autocompleteDiv.innerHTML = '<div class="p-3 text-muted">No results found</div>';
+                autocompleteDiv.style.display = 'block';
+                return;
+              }
+
+              const html = results.map(product => `
+                <a href="${product.url}" class="d-flex align-items-center p-2 text-decoration-none border-bottom" style="color: var(--text-color);">
+                  <img src="${product.image_url}" alt="${product.title}" class="me-2" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+                  <div class="flex-grow-1">
+                    <div class="fw-bold">${product.title}</div>
+                    <small class="text-muted">${product.category || 'Uncategorized'}</small>
+                  </div>
+                  <div class="text-primary fw-bold">$${product.price.toFixed(2)}</div>
+                </a>
+              `).join('');
+
+              autocompleteDiv.innerHTML = html;
+              autocompleteDiv.style.display = 'block';
+            })
+            .catch(error => {
+              console.error('Autocomplete error:', error);
+              autocompleteDiv.style.display = 'none';
+            });
+        }, 300);
+      });
+
+      // Close autocomplete when clicking outside
+      document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !autocompleteDiv.contains(e.target)) {
+          autocompleteDiv.style.display = 'none';
+        }
+      });
+
+      // Close autocomplete on form submit
+      searchInput.closest('form').addEventListener('submit', function() {
+        autocompleteDiv.style.display = 'none';
+      });
     })();
   </script>
 
