@@ -1045,8 +1045,86 @@ def my_listings():
 @app.route('/settings')
 @login_required
 def settings():
-    """User settings page - redirects to edit profile for now"""
-    return redirect(url_for('edit_profile'))
+    """User settings page with password change"""
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    return render_template('edit_profile.html', user=user)
+
+@app.route('/settings/update', methods=['POST'])
+@login_required
+def update_settings():
+    """Handle settings updates"""
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    
+    # Handle password change
+    current_password = request.form.get('current_password', '').strip()
+    new_password = request.form.get('new_password', '').strip()
+    confirm_password = request.form.get('confirm_password', '').strip()
+    
+    if current_password or new_password or confirm_password:
+        # Password change requested
+        if not current_password:
+            flash("Please enter your current password.", "danger")
+            return redirect(url_for('settings'))
+        
+        if not check_password_hash(user.password_hash, current_password):
+            flash("Current password is incorrect.", "danger")
+            return redirect(url_for('settings'))
+        
+        if not new_password:
+            flash("Please enter a new password.", "danger")
+            return redirect(url_for('settings'))
+        
+        if new_password != confirm_password:
+            flash("New passwords do not match.", "danger")
+            return redirect(url_for('settings'))
+        
+        if not is_strong_password(new_password):
+            flash("Password is too weak. Use at least 8 characters including uppercase, lowercase, a number, and a symbol.", "danger")
+            return redirect(url_for('settings'))
+        
+        # Update password
+        user.password_hash = generate_password_hash(new_password)
+        db.session.commit()
+        flash("Password updated successfully!", "success")
+        return redirect(url_for('settings'))
+    
+    # Handle profile updates
+    business_name = request.form.get('business_name', '').strip() or None
+    seller_description = request.form.get('seller_description', '').strip() or None
+    profile_picture = request.form.get('profile_picture', '').strip() or None
+    
+    user.business_name = business_name
+    user.seller_description = seller_description
+    user.profile_picture = profile_picture
+    
+    db.session.commit()
+    flash("Profile updated successfully!", "success")
+    return redirect(url_for('settings'))
+
+@app.route('/profile')
+@login_required
+def profile():
+    """View user's own profile"""
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    
+    # Get user's stats if seller
+    stats = None
+    if user.is_seller:
+        products = Product.query.filter_by(seller_id=user_id).all()
+        total_products = len(products)
+        active_products = len([p for p in products if p.status == 'available'])
+        
+        stats = {
+            'total_products': total_products,
+            'active_products': active_products,
+            'rating': user.rating or 0,
+            'total_sales': user.total_sales or 0
+        }
+    
+    return render_template('profile.html', user=user, stats=stats)
 
 # Admin dashboard
 @app.route('/admin')
@@ -1494,28 +1572,6 @@ def reply_to_review(review_id):
     db.session.commit()
     flash("Response added to review.", "success")
     return redirect(request.referrer or url_for('index'))
-
-# User Profile Editor
-@app.route('/profile', methods=['GET', 'POST'])
-@login_required
-def edit_profile():
-    user_id = session.get('user_id')
-    user = User.query.get(user_id)
-    
-    if request.method == 'POST':
-        business_name = request.form.get('business_name', '').strip() or None
-        seller_description = request.form.get('seller_description', '').strip() or None
-        profile_picture = request.form.get('profile_picture', '').strip() or None
-        
-        user.business_name = business_name
-        user.seller_description = seller_description
-        user.profile_picture = profile_picture
-        
-        db.session.commit()
-        flash("Profile updated successfully!", "success")
-        return redirect(url_for('edit_profile'))
-    
-    return render_template('edit_profile.html', user=user)
 
 # Seller Dashboard with Analytics
 @app.route('/seller/dashboard')

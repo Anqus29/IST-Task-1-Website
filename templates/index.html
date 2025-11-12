@@ -34,7 +34,7 @@
             --border-color: #2d3748;
         }
         
-        /* Map styling */
+    /* Map styling */
         #locationMap {
             z-index: 1;
         }
@@ -44,7 +44,6 @@
         }
         
         [data-theme="dark"] .leaflet-popup-content-wrapper {
-            background-color: var(--card-bg);
             color: var(--text-color);
         }
         
@@ -970,47 +969,53 @@
             // Compute popularity range for scaling (declared later after sorting)
             let maxViewCount = 1;
 
+            const BOAT_SPEED = 18;
+
             function addBoatForProduct(p) {
                 // Choose random direction: 0=right, 1=down, 2=left, 3=up
                 const direction = Math.floor(Math.random() * 4);
                 let startX, startY, baseHeading, speedX, speedY;
-                const baseSpeed = rand(12, 26); // Slightly slower boats for a calmer scene
+                
+                // Add angle variation (±20 degrees) and slight speed variation (±15%)
+                const angleVariation = rand(-0.35, 0.35); // ±20 degrees in radians
+                const speedVariation = rand(0.85, 1.15); // 85% to 115% of base speed
+                const baseSpeed = BOAT_SPEED * speedVariation;
                 
                 switch(direction) {
                     case 0: // From left, moving right
                         startX = rand(-140, -20);
                         startY = rand(0, height);  // Full height range
-                        baseHeading = 0;
-                        speedX = baseSpeed;
-                        speedY = 0;
+                        baseHeading = 0 + angleVariation;
+                        speedX = Math.cos(baseHeading) * baseSpeed;
+                        speedY = Math.sin(baseHeading) * baseSpeed;
                         break;
                     case 1: // From top, moving down
                         startX = rand(0, width);  // Full width range
                         startY = rand(-140, -20);
-                        baseHeading = Math.PI / 2;
-                        speedX = 0;
-                        speedY = baseSpeed;
+                        baseHeading = Math.PI / 2 + angleVariation;
+                        speedX = Math.cos(baseHeading) * baseSpeed;
+                        speedY = Math.sin(baseHeading) * baseSpeed;
                         break;
                     case 2: // From right, moving left
                         startX = rand(width + 20, width + 160);
                         startY = rand(0, height);  // Full height range
-                        baseHeading = Math.PI;
-                        speedX = -baseSpeed;
-                        speedY = 0;
+                        baseHeading = Math.PI + angleVariation;
+                        speedX = Math.cos(baseHeading) * baseSpeed;
+                        speedY = Math.sin(baseHeading) * baseSpeed;
                         break;
                     case 3: // From bottom, moving up
                         startX = rand(0, width);  // Full width range
                         startY = rand(height + 20, height + 160);
-                        baseHeading = -Math.PI / 2;
-                        speedX = 0;
-                        speedY = -baseSpeed;
+                        baseHeading = -Math.PI / 2 + angleVariation;
+                        speedX = Math.cos(baseHeading) * baseSpeed;
+                        speedY = Math.sin(baseHeading) * baseSpeed;
                         break;
                 }
                 
                 const popularity = Number(p.view_count || 0);
                 const popularityRatio = Math.min(popularity / maxViewCount, 1);
-                const popularityScale = 1.0 + popularityRatio * 1.0; // 1.0 - 2.0 range (increased from 0.85-1.5)
-                const length = rand(50, 75) * popularityScale; // boat length scaled by popularity (increased base size)
+                // Uniform smaller size for all boats
+                const length = 52;
                 const amplitude = rand(0.3, 0.8); // reduced bob amplitude for gentler movement
                 const frequency = rand(0.0015, 0.003);
                 const phase = rand(0, Math.PI * 2);
@@ -1046,7 +1051,7 @@
                 if (popularityRatio > 0.33) tier = 2;
                 if (popularityRatio > 0.66) tier = 3;
                 
-                // Assign boat type based on index for variety
+                // Boat type assignment based on index for variety
                 const boatTypes = ['sloop', 'catamaran', 'yacht', 'dinghy', 'racer'];
                 const boatType = boatTypes[boats.length % boatTypes.length];
                 
@@ -1073,9 +1078,7 @@
                     freq: frequency,
                     phase,
                     theta,
-                    hover: false,
-                    imageLoaded: false,
-                    image: null
+                    hover: false
                 });
             }
 
@@ -1089,20 +1092,7 @@
             selected.forEach(p => addBoatForProduct(p));
 
             // Load images for boats
-            boats.forEach(boat => {
-                if (boat.image_url) {
-                    const img = new Image();
-                    img.crossOrigin = "anonymous"; // Allow cross-origin if needed
-                    img.onload = () => {
-                        boat.imageLoaded = true;
-                        boat.image = img;
-                    };
-                    img.onerror = () => {
-                        boat.imageLoaded = false; // Failed to load
-                    };
-                    img.src = boat.image_url;
-                }
-            });
+            // Image loading removed per request; boats now render without product thumbnails.
 
             function drawBackground(t) {
                 // Vertical gradient (deeper darker)
@@ -1157,24 +1147,47 @@
                 const x = b.x;
                 const y = b.baseY + Math.sin(t * 1000 * b.freq + b.phase) * b.amp;
                 const len = b.len;
-                const beam = Math.max(12, len * 0.38);
+                const beam = Math.max(10, len * 0.34); // scale beam a bit narrower to keep larger boats elegant
                 const halfL = len * 0.5;
 
-                const heading = (b.theta || 0) + Math.sin(t * 0.4 + b.phase) * 0.012;
+                 // Add slight realistic roll and pitch based on wave phase
+                 const pitch = Math.sin(t * 0.7 + b.phase) * 0.015; // forward/back rocking
+                 const roll = Math.sin(t * 1.1 + b.phase * 0.5) * 0.02;  // side roll (used for lighting)
+                 const heading = (b.theta || 0) + Math.sin(t * 0.4 + b.phase) * 0.012 + pitch;
                 b.heading = heading;
                 b.drawY = y;
 
-                const baseHull = b.hover ? colors.accent : '#ffffff';
-                const deckGrad = ctx.createLinearGradient(x - halfL, y, x + halfL, y);
-                deckGrad.addColorStop(0, hexToRgba(baseHull, 0.85));
-                deckGrad.addColorStop(0.5, hexToRgba(baseHull, 1.0));
-                deckGrad.addColorStop(1, hexToRgba(baseHull, 0.85));
-                const strokeColor = b.hover ? hexToRgba('#000000', 0.45) : hexToRgba('#000000', 0.25);
+                 // Dynamic lighting: light comes from upper-left (global direction)
+                 const lightDir = { x: -0.6, y: -0.8 };
+                 const normLen = Math.hypot(lightDir.x, lightDir.y) || 1;
+                 lightDir.x /= normLen; lightDir.y /= normLen;
+                 // Surface facing factor approximated via roll (simulate slight shading change)
+                 const facing = Math.max(0.2, 0.8 - Math.abs(roll) * 18);
+                 const baseHull = b.hover ? colors.accent : '#ffffff';
+                 const hullLight = hexToRgba(baseHull, 0.9 * facing);
+                 const hullMid = hexToRgba(baseHull, 0.95 * facing + 0.05);
+                 const hullShadow = hexToRgba('#d8d8d8', 0.85 - facing * 0.3);
+                 const deckGrad = ctx.createLinearGradient(x - halfL, y - beam * 0.4, x + halfL, y + beam * 0.4);
+                 deckGrad.addColorStop(0, hullShadow);
+                 deckGrad.addColorStop(0.5, hullMid);
+                 deckGrad.addColorStop(1, hullLight);
+                 const strokeColor = b.hover ? hexToRgba('#000000', 0.5) : hexToRgba('#000000', 0.28);
                 const stripeColor = categoryColors[b.category] || '#1e90ff';
 
                 ctx.save();
                 ctx.translate(x, y);
                 ctx.rotate(heading);
+                 // Apply slight roll around longitudinal axis by skewing vertically (approximation)
+                 ctx.transform(1, 0, roll * 0.15, 1, 0, 0);
+                
+                // Soft drop shadow onto water for depth
+                ctx.save();
+                ctx.rotate(0);
+                ctx.fillStyle = hexToRgba('#000000', 0.12);
+                ctx.beginPath();
+                ctx.ellipse(-halfL * 0.1, beam * 0.1, halfL * 0.6, beam * 0.45, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
 
                 // Draw different boat types
                 if (b.boatType === 'catamaran') {
@@ -1212,6 +1225,15 @@
                     // Connecting deck
                     ctx.fillStyle = hexToRgba(stripeColor, b.hover ? 0.7 : 0.5);
                     ctx.fillRect(-halfL * 0.5, -hullOffset + r, halfL, hullOffset * 2 - r * 2);
+                    // Netting suggestion (diagonal lines)
+                    ctx.strokeStyle = hexToRgba('#ffffff', 0.25);
+                    ctx.lineWidth = 0.8;
+                    for (let nx = -halfL * 0.45; nx < halfL * 0.5; nx += hullWidth * 0.65) {
+                        ctx.beginPath();
+                        ctx.moveTo(nx, -hullOffset + r);
+                        ctx.lineTo(nx + hullWidth * 0.4, hullOffset - r);
+                        ctx.stroke();
+                    }
                     
                 } else if (b.boatType === 'yacht') {
                     // Sleek yacht with cabin
@@ -1246,6 +1268,9 @@
                         const wx = -cabinLen * 0.35 + (i / (windowCount - 1)) * (cabinLen * 0.7);
                         ctx.fillStyle = hexToRgba('#5ac8fa', 0.6);
                         ctx.fillRect(wx - 3, -cabinHeight * 0.15, 6, cabinHeight * 0.25);
+                        // subtle window reflection
+                        ctx.fillStyle = hexToRgba('#ffffff', 0.25);
+                        ctx.fillRect(wx - 3, -cabinHeight * 0.15, 6, cabinHeight * 0.08);
                     }
                     
                 } else if (b.boatType === 'dinghy') {
@@ -1275,6 +1300,17 @@
                     ctx.moveTo(halfL * 0.2, -r * 0.7);
                     ctx.lineTo(halfL * 0.2, r * 0.7);
                     ctx.stroke();
+                    // Oars (suggestion)
+                    ctx.strokeStyle = hexToRgba('#c18a3b', b.hover ? 0.9 : 0.6);
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(-halfL * 0.05, -r * 0.2);
+                    ctx.lineTo(-halfL * 0.35, -r * 0.9);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(-halfL * 0.05, r * 0.2);
+                    ctx.lineTo(-halfL * 0.35, r * 0.9);
+                    ctx.stroke();
                     
                 } else if (b.boatType === 'racer') {
                     // Racing sailboat - sleek and narrow
@@ -1302,6 +1338,14 @@
                     ctx.lineTo(-halfL * 0.6, r * 0.3);
                     ctx.lineTo(halfL * 0.6, r * 0.5);
                     ctx.closePath();
+                    ctx.fill();
+                    // Keel suggestion (small fin below centerline)
+                    ctx.beginPath();
+                    ctx.moveTo(-halfL * 0.1, r * 0.05);
+                    ctx.lineTo(-halfL * 0.1, r * 0.45);
+                    ctx.lineTo(halfL * 0.05, r * 0.05);
+                    ctx.closePath();
+                    ctx.fillStyle = hexToRgba('#333', 0.6);
                     ctx.fill();
                     
                 } else {
@@ -1349,35 +1393,7 @@
                 ctx.globalAlpha = 1;
 
                 // Product image (if loaded)
-                if (b.imageLoaded && b.image) {
-                    ctx.save();
-                    // Create circular clipping region for image
-                    const imgSize = Math.min(len * 0.35, beam * 0.9);
-                    const imgX = -len * 0.15; // Position towards stern
-                    const imgY = 0;
-                    
-                    ctx.beginPath();
-                    ctx.arc(imgX, imgY, imgSize * 0.5, 0, Math.PI * 2);
-                    ctx.clip();
-                    
-                    // Draw image centered in circle
-                    ctx.drawImage(
-                        b.image,
-                        imgX - imgSize * 0.5,
-                        imgY - imgSize * 0.5,
-                        imgSize,
-                        imgSize
-                    );
-                    
-                    ctx.restore();
-                    
-                    // Add border around image
-                    ctx.beginPath();
-                    ctx.arc(imgX, imgY, imgSize * 0.5, 0, Math.PI * 2);
-                    ctx.strokeStyle = hexToRgba('#ffffff', b.hover ? 0.8 : 0.6);
-                    ctx.lineWidth = b.hover ? 2.5 : 1.5;
-                    ctx.stroke();
-                }
+                    // Removed product image rendering (simplified hull only)
 
                 // Tier extras
                 if (b.tier >= 2) {
@@ -1421,9 +1437,11 @@
                 ctx.fillStyle = colors.accent;
                 ctx.fill();
 
-                // Wake behind stern (scale with tier)
-                const wakeLenScale = b.tier === 3 ? 0.38 : b.tier === 2 ? 0.30 : 0.25;
-                const wakeWidthScale = b.tier === 3 ? 0.22 : b.tier === 2 ? 0.20 : 0.18;
+                // Wake behind stern (scale with speed and slightly with tier)
+                const speedMag = Math.hypot(b.speedX || 0, b.speedY || 0);
+                const speedNorm = Math.min(1, speedMag / BOAT_SPEED); // 0..1 based on uniform speed
+                const wakeLenScale = 0.18 + speedNorm * 0.28 + (b.tier - 1) * 0.02;
+                const wakeWidthScale = 0.12 + speedNorm * 0.12 + (b.tier - 1) * 0.02;
                 ctx.globalAlpha = 0.18 + (b.tier - 1) * 0.05;
                 ctx.beginPath();
                 ctx.moveTo(-halfL, 0);
@@ -1434,16 +1452,6 @@
                 ctx.fill();
                 ctx.globalAlpha = 1;
 
-                // Soft shadow (ellipse) beneath boat for depth
-                ctx.save();
-                ctx.rotate(-heading); // Cancel rotation for shadow alignment with water surface
-                ctx.globalAlpha = 0.15;
-                ctx.fillStyle = '#000000';
-                ctx.beginPath();
-                ctx.ellipse(0, 0, halfL * 0.55, beam * 0.55, 0, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.globalAlpha = 1;
-                ctx.restore();
 
                 ctx.restore();
 
@@ -1453,10 +1461,10 @@
                     // is less sensitive while keeping some width for usability.
                     const hx = Math.cos(heading);
                     const hy = Math.sin(heading);
-                    const hitLen = len * 0.45;      // shorter than hull (45%)
-                    const hitBeam = beam * 0.45;    // narrower (45%)
-                    // Shift center backward 15% of hull length to remove most of front area
-                    const centerShift = len * 0.15;
+                    const hitLen = len * 0.35;      // shorter than hull (35%, reduced from 45%)
+                    const hitBeam = beam * 0.35;    // narrower (35%, reduced from 45%)
+                    // Shift center backward 20% of hull length to remove more of front area
+                    const centerShift = len * 0.20;
                     const hitCenterX = x - hx * centerShift;
                     const hitCenterY = y - hy * centerShift;
                     b.screenX = hitCenterX - hitLen / 2;
@@ -1505,13 +1513,21 @@
                             const nx = dx / dist;
                             const ny = dy / dist;
                             
-                            // Push boats apart based on overlap
-                            const pushForce = overlap * 0.5;
+                            // Mass-proportional push: larger boats push more, move less
+                            const beam1 = Math.max(12, boats[i].len * 0.38);
+                            const beam2 = Math.max(12, boats[j].len * 0.38);
+                            const m1 = boats[i].len * beam1;
+                            const m2 = boats[j].len * beam2;
+                            const totalM = m1 + m2 || 1;
+                            const push = overlap;
+                            // Distribute displacement inversely proportional to mass
+                            const d1 = (m2 / totalM) * push; // lighter moves more
+                            const d2 = (m1 / totalM) * push;
                             
-                            boats[i].x += nx * pushForce;
-                            boats[i].baseY += ny * pushForce;
-                            boats[j].x -= nx * pushForce;
-                            boats[j].baseY -= ny * pushForce;
+                            boats[i].x += nx * d1;
+                            boats[i].baseY += ny * d1;
+                            boats[j].x -= nx * d2;
+                            boats[j].baseY -= ny * d2;
                             
                             // No bounds clamping here - let boats move freely to respawn edges
                         }
@@ -1565,36 +1581,45 @@
                     if (needsRespawn) {
                         // Choose new random direction
                         b.direction = Math.floor(Math.random() * 4);
-                        const baseSpeed = rand(18, 35); // Increased speed to match initial spawn
                         
+                        // Add angle variation and slight speed variation on respawn
+                        const angleVariation = rand(-0.35, 0.35); // ±20 degrees
+                        const speedVariation = rand(0.85, 1.15); // 85% to 115%
+                        const baseSpeed = BOAT_SPEED * speedVariation;
+                        
+                        let baseHeading;
                         switch(b.direction) {
                             case 0: // From left, moving right
                                 b.x = rand(-140, -20);
-                                b.y = rand(0, height);  // Full height range
-                                b.theta = 0 + b.headingJitter;
-                                b.speedX = baseSpeed;
-                                b.speedY = 0;
+                                b.y = rand(0, height);
+                                baseHeading = 0 + angleVariation;
+                                b.theta = baseHeading + b.headingJitter;
+                                b.speedX = Math.cos(baseHeading) * baseSpeed;
+                                b.speedY = Math.sin(baseHeading) * baseSpeed;
                                 break;
                             case 1: // From top, moving down
-                                b.x = rand(0, width);  // Full width range
+                                b.x = rand(0, width);
                                 b.y = rand(-140, -20);
-                                b.theta = Math.PI / 2 + b.headingJitter;
-                                b.speedX = 0;
-                                b.speedY = baseSpeed;
+                                baseHeading = Math.PI / 2 + angleVariation;
+                                b.theta = baseHeading + b.headingJitter;
+                                b.speedX = Math.cos(baseHeading) * baseSpeed;
+                                b.speedY = Math.sin(baseHeading) * baseSpeed;
                                 break;
                             case 2: // From right, moving left
                                 b.x = rand(width + 20, width + 160);
-                                b.y = rand(0, height);  // Full height range
-                                b.theta = Math.PI + b.headingJitter;
-                                b.speedX = -baseSpeed;
-                                b.speedY = 0;
+                                b.y = rand(0, height);
+                                baseHeading = Math.PI + angleVariation;
+                                b.theta = baseHeading + b.headingJitter;
+                                b.speedX = Math.cos(baseHeading) * baseSpeed;
+                                b.speedY = Math.sin(baseHeading) * baseSpeed;
                                 break;
                             case 3: // From bottom, moving up
-                                b.x = rand(0, width);  // Full width range
+                                b.x = rand(0, width);
                                 b.y = rand(height + 20, height + 160);
-                                b.theta = -Math.PI / 2 + b.headingJitter;
-                                b.speedX = 0;
-                                b.speedY = -baseSpeed;
+                                baseHeading = -Math.PI / 2 + angleVariation;
+                                b.theta = baseHeading + b.headingJitter;
+                                b.speedX = Math.cos(baseHeading) * baseSpeed;
+                                b.speedY = Math.sin(baseHeading) * baseSpeed;
                                 break;
                         }
                         b.baseY = b.y;
@@ -1646,8 +1671,8 @@
                     const b = boats[i];
                     if (!b) continue;
                     const len = b.len;
-                    // Narrower lateral hitbox to reduce "side" sensitivity
-                    const beam = Math.max(6, len * 0.20);
+                    // Narrower lateral hitbox to reduce "side" sensitivity (reduced from 0.20 to 0.15)
+                    const beam = Math.max(5, len * 0.15);
                     const heading = b.heading || b.theta || 0;
                     const y = b.drawY !== undefined ? b.drawY : b.baseY;
                     const dx = mx - b.x;
@@ -1657,7 +1682,8 @@
                     // Rotate point into boat local space
                     const rx = dx * cosH - dy * sinH;
                     const ry = dx * sinH + dy * cosH;
-                    if (rx >= -len/2 && rx <= len/2 && ry >= -beam/2 && ry <= beam/2) {
+                    // Reduced hitbox: use 70% of length (was full length)
+                    if (rx >= -len*0.35 && rx <= len*0.35 && ry >= -beam/2 && ry <= beam/2) {
                         return b;
                     }
                 }
@@ -2070,10 +2096,10 @@
         });
         
         // Load weather on page load
-        loadWeather();
+        // loadWeather();
         
         // Refresh every 15 minutes
-        setInterval(loadWeather, 15 * 60 * 1000);
+        // setInterval(loadWeather, 15 * 60 * 1000);
     </script>
 </body>
 </html>

@@ -109,7 +109,7 @@
               {% endif %}
             {% endwith %}
 
-            <form method="post">
+            <form method="post" action="{{ url_for('update_settings') }}">
               <!-- Account Information -->
               <h5 class="section-title">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-person-badge me-2" viewBox="0 0 16 16">
@@ -129,6 +129,38 @@
                 <label class="form-label fw-bold">Email</label>
                 <input type="email" class="form-control" value="{{ user['email'] }}" disabled>
                 <small class="text-muted">Email cannot be changed</small>
+              </div>
+
+              <!-- Password Change Section -->
+              <h5 class="section-title">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-key me-2" viewBox="0 0 16 16">
+                  <path d="M0 8a4 4 0 0 1 7.465-2H14a.5.5 0 0 1 .354.146l1.5 1.5a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0L13 9.207l-.646.647a.5.5 0 0 1-.708 0L11 9.207l-.646.647a.5.5 0 0 1-.708 0L9 9.207l-.646.647A.5.5 0 0 1 8 10h-.535A4 4 0 0 1 0 8zm4-3a3 3 0 1 0 2.712 4.285A.5.5 0 0 1 7.163 9h.63l.853-.854a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.793-.793-1-1h-6.63a.5.5 0 0 1-.451-.285A3 3 0 0 0 4 5z"/>
+                  <path d="M4 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                </svg>
+                Change Password
+              </h5>
+
+              <div class="alert alert-info">
+                <small><strong>Password Requirements:</strong> At least 8 characters including uppercase, lowercase, a number, and a symbol.</small>
+              </div>
+
+              <div class="mb-3">
+                <label for="current_password" class="form-label fw-bold">Current Password</label>
+                <input type="password" class="form-control" id="current_password" name="current_password" 
+                       placeholder="Enter your current password">
+                <small class="text-muted">Required to change password</small>
+              </div>
+
+              <div class="mb-3">
+                <label for="new_password" class="form-label fw-bold">New Password</label>
+                <input type="password" class="form-control" id="new_password" name="new_password" 
+                       placeholder="Enter new password">
+              </div>
+
+              <div class="mb-3">
+                <label for="confirm_password" class="form-label fw-bold">Confirm New Password</label>
+                <input type="password" class="form-control" id="confirm_password" name="confirm_password" 
+                       placeholder="Confirm new password">
               </div>
 
               <!-- Seller Information -->
