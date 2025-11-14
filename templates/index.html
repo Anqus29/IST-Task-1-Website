@@ -957,8 +957,7 @@
             resizeCanvas();
             window.addEventListener('resize', resizeCanvas);
 
-            // Map products to boats (fetch up to 30 products to ensure we have enough for 27 boats)
-            const products = Array.isArray(POPULAR_PRODUCTS) ? POPULAR_PRODUCTS.slice(0, 30) : [];
+            // Boats are independent of products
             const boats = [];
             const wakeParticles = [];
             const now = () => performance.now();
@@ -966,19 +965,18 @@
             function rand(min, max) { return Math.random() * (max - min) + min; }
             // Randomly choose direction so boats spawn from all four directions
 
-            // Compute popularity range for scaling (declared later after sorting)
-            let maxViewCount = 1;
+            // No popularity metrics
 
             const BOAT_SPEED = 18;
 
-            function addBoatForProduct(p) {
+            function addBoatForProduct() {
                 // Choose random direction: 0=right, 1=down, 2=left, 3=up
                 const direction = Math.floor(Math.random() * 4);
                 let startX, startY, baseHeading, speedX, speedY;
                 
-                // Add angle variation (±20 degrees) and slight speed variation (±15%)
+                // Add angle variation (±20 degrees) and variable speed (60%..160% of base)
                 const angleVariation = rand(-0.35, 0.35); // ±20 degrees in radians
-                const speedVariation = rand(0.85, 1.15); // 85% to 115% of base speed
+                const speedVariation = rand(0.6, 1.6);
                 const baseSpeed = BOAT_SPEED * speedVariation;
                 
                 switch(direction) {
@@ -1012,12 +1010,10 @@
                         break;
                 }
                 
-                const popularity = Number(p.view_count || 0);
-                const popularityRatio = Math.min(popularity / maxViewCount, 1);
                 // Uniform smaller size for all boats
                 const length = 52;
-                const amplitude = rand(0.3, 0.8); // reduced bob amplitude for gentler movement
-                const frequency = rand(0.0015, 0.003);
+                let amplitude = rand(0.3, 0.8); // reduced bob amplitude for gentler movement
+                let frequency = rand(0.0015, 0.003);
                 const phase = rand(0, Math.PI * 2);
                 const jitter = rand(-0.08, 0.08); // minor deviation only
                 const theta = baseHeading + jitter; // heading primary direction
@@ -1046,23 +1042,48 @@
                         tries++;
                     }
                 })();
-                // Tiering based on popularity ratio
-                let tier = 1;
-                if (popularityRatio > 0.33) tier = 2;
-                if (popularityRatio > 0.66) tier = 3;
+                // Randomized tier (visual embellishments)
+                let tier = 1; const rTier = Math.random();
+                if (rTier > 0.85) tier = 3; else if (rTier > 0.55) tier = 2;
                 
-                // Boat type assignment based on index for variety
-                const boatTypes = ['sloop', 'catamaran', 'yacht', 'dinghy', 'racer'];
-                const boatType = boatTypes[boats.length % boatTypes.length];
+                // Sequential rotation with tier-biased skip ensures all designs appear over time
+                if (typeof window.__boatCycleIndex === 'undefined') {
+                    window.__boatCycleIndex = 0;
+                }
+                const ALL_BOAT_TYPES = ['sloop','catamaran','yacht','dinghy','racer','speedboat','ferry','trawler','barge','kayak'];
+                const tierBiasMap = { 1: 0.15, 2: 0.35, 3: 0.55 };
+                const bias = tierBiasMap[tier] || 0.15;
+                window.__boatCycleIndex = (window.__boatCycleIndex + 1 + (Math.random() < bias ? 1 : 0)) % ALL_BOAT_TYPES.length;
+                const boatType = ALL_BOAT_TYPES[window.__boatCycleIndex];
+
+                // Per-boat-type motion & size profiles (speed multiplier, bob amplitude, frequency override)
+                const BOAT_PROFILES = {
+                    sloop:      { speed: 1.00, amp: 14, freq: 0.12 },
+                    catamaran:  { speed: 1.05, amp: 13, freq: 0.11 },
+                    yacht:      { speed: 0.95, amp: 12, freq: 0.10 },
+                    dinghy:     { speed: 0.85, amp: 11, freq: 0.14 },
+                    racer:      { speed: 1.18, amp: 15, freq: 0.15 },
+                    speedboat:  { speed: 1.32, amp: 9,  freq: 0.16 },
+                    ferry:      { speed: 0.78, amp: 8,  freq: 0.09 },
+                    trawler:    { speed: 0.75, amp: 7,  freq: 0.085 },
+                    barge:      { speed: 0.60, amp: 5,  freq: 0.07 },
+                    kayak:      { speed: 0.92, amp: 12, freq: 0.18 }
+                };
+                const profile = BOAT_PROFILES[boatType] || { speed: 1, amp: 12, freq: 0.12 };
+                // Apply speed multiplier
+                speedX *= profile.speed;
+                speedY *= profile.speed;
+                // Override bob amplitude & frequency (convert freq from cycles/sec to internal usage ~ milliseconds factor)
+                const amplitudeScaled = profile.amp * 0.7; // scale down to canvas units
+                frequency = profile.freq / 1000; // override base frequency (stored as per-ms factor)
                 
+                // Per-boat color and wake factor
+                const palette = ['#1e90ff', '#ff7043', '#66bb6a', '#ab47bc', '#ffa726', '#29b6f6', '#ef5350', '#26a69a'];
+                const color = palette[Math.floor(Math.random() * palette.length)];
+                const wakeFactor = rand(0.8, 1.4);
+                const speedRef = BOAT_SPEED * 1.6;
+
                 boats.push({
-                    id: p.id,
-                    title: p.title,
-                    price: p.price,
-                    category: p.category,
-                    image_url: p.image_url,
-                    viewCount: popularity,
-                    popularityRatio,
                     tier,
                     boatType,
                     headingJitter: jitter,
@@ -1074,25 +1095,22 @@
                     speedY,
                     direction,
                     len: length,
-                    amp: amplitude,
+                    amp: amplitudeScaled,
                     freq: frequency,
                     phase,
                     theta,
-                    hover: false
+                    hover: false,
+                    color,
+                    wakeFactor,
+                    speedRef
                 });
             }
 
-            // Hard cap total boats for clarity & performance
-            const MAX_BOATS = 4; // Clean minimal number of boats
-            // Sort by popularity (view_count desc) and take top products
-            const sorted = products.slice().sort((a,b) => (Number(b.view_count||0) - Number(a.view_count||0)));
-            maxViewCount = sorted.reduce((m, p) => Math.max(m, Number(p.view_count||0)), 0) || 1;
-            const selected = sorted.slice(0, MAX_BOATS);
-            // One boat per selected product (removed extra duplicates for simpler view)
-            selected.forEach(p => addBoatForProduct(p));
+            // Hard cap total boats (independent of products)
+            const MAX_BOATS = 4;
+            for (let i = 0; i < MAX_BOATS; i++) addBoatForProduct();
 
-            // Load images for boats
-            // Image loading removed per request; boats now render without product thumbnails.
+            // No product images used
 
             function drawBackground(t) {
                 // Vertical gradient (deeper darker)
@@ -1144,333 +1162,379 @@
             }
 
             function drawBoat(b, t) {
+                // Position & wave motion
                 const x = b.x;
                 const y = b.baseY + Math.sin(t * 1000 * b.freq + b.phase) * b.amp;
                 const len = b.len;
-                const beam = Math.max(10, len * 0.34); // scale beam a bit narrower to keep larger boats elegant
+                const beam = Math.max(10, len * 0.34);
                 const halfL = len * 0.5;
 
-                 // Add slight realistic roll and pitch based on wave phase
-                 const pitch = Math.sin(t * 0.7 + b.phase) * 0.015; // forward/back rocking
-                 const roll = Math.sin(t * 1.1 + b.phase * 0.5) * 0.02;  // side roll (used for lighting)
-                 const heading = (b.theta || 0) + Math.sin(t * 0.4 + b.phase) * 0.012 + pitch;
+                // Motion & attitude
+                const pitch = Math.sin(t * 0.7 + b.phase) * 0.015;
+                const roll = Math.sin(t * 1.1 + b.phase * 0.5) * 0.02;
+                const heading = (b.theta || 0) + Math.sin(t * 0.4 + b.phase) * 0.012 + pitch;
                 b.heading = heading;
                 b.drawY = y;
 
-                 // Dynamic lighting: light comes from upper-left (global direction)
-                 const lightDir = { x: -0.6, y: -0.8 };
-                 const normLen = Math.hypot(lightDir.x, lightDir.y) || 1;
-                 lightDir.x /= normLen; lightDir.y /= normLen;
-                 // Surface facing factor approximated via roll (simulate slight shading change)
-                 const facing = Math.max(0.2, 0.8 - Math.abs(roll) * 18);
-                 const baseHull = b.hover ? colors.accent : '#ffffff';
-                 const hullLight = hexToRgba(baseHull, 0.9 * facing);
-                 const hullMid = hexToRgba(baseHull, 0.95 * facing + 0.05);
-                 const hullShadow = hexToRgba('#d8d8d8', 0.85 - facing * 0.3);
-                 const deckGrad = ctx.createLinearGradient(x - halfL, y - beam * 0.4, x + halfL, y + beam * 0.4);
-                 deckGrad.addColorStop(0, hullShadow);
-                 deckGrad.addColorStop(0.5, hullMid);
-                 deckGrad.addColorStop(1, hullLight);
-                 const strokeColor = b.hover ? hexToRgba('#000000', 0.5) : hexToRgba('#000000', 0.28);
-                const stripeColor = categoryColors[b.category] || '#1e90ff';
+                // Lighting factors
+                const facing = Math.max(0.2, 0.8 - Math.abs(roll) * 18);
+                const baseHull = b.hover ? colors.accent : '#ffffff';
+                const hullLight = hexToRgba(baseHull, 0.92 * facing);
+                const hullMid = hexToRgba(baseHull, 0.78 * facing + 0.12);
+                const hullShadow = hexToRgba('#bfc4c7', 0.65 - facing * 0.25);
+                const stripeColor = b.color || '#1e90ff';
+                const strokeColor = b.hover ? hexToRgba('#000000', 0.5) : hexToRgba('#000000', 0.28);
 
                 ctx.save();
                 ctx.translate(x, y);
                 ctx.rotate(heading);
-                 // Apply slight roll around longitudinal axis by skewing vertically (approximation)
-                 ctx.transform(1, 0, roll * 0.15, 1, 0, 0);
-                
-                // Soft drop shadow onto water for depth
+                ctx.transform(1, 0, roll * 0.15, 1, 0, 0); // skew for roll illusion
+
+                // Gradient in local space (rotates with hull)
+                const deckGrad = ctx.createLinearGradient(-halfL, -beam * 0.5, halfL, beam * 0.5);
+                deckGrad.addColorStop(0, hullShadow);
+                deckGrad.addColorStop(0.25, hullMid);
+                deckGrad.addColorStop(0.5, hullLight);
+                deckGrad.addColorStop(0.75, hullMid);
+                deckGrad.addColorStop(1, hullShadow);
+
+                // Soft water shadow
                 ctx.save();
-                ctx.rotate(0);
-                ctx.fillStyle = hexToRgba('#000000', 0.12);
+                ctx.globalAlpha = 0.12;
                 ctx.beginPath();
                 ctx.ellipse(-halfL * 0.1, beam * 0.1, halfL * 0.6, beam * 0.45, 0, 0, Math.PI * 2);
+                ctx.fillStyle = '#000000';
                 ctx.fill();
                 ctx.restore();
 
-                // Draw different boat types
+                // Reflection & under-shadow helpers
+                function drawReflection(pathBuilder) {
+                    ctx.save();
+                    // Tier-based reflection strength (tier1 faint, tier3 stronger)
+                    const tierFactor = (0.55 + 0.25 * (b.tier - 1));
+                    ctx.globalAlpha = 0.12 * tierFactor * (1 - Math.min(1, Math.abs(roll) * 18));
+                    ctx.scale(1, 0.55);
+                    ctx.translate(0, beam * 1.05);
+                    pathBuilder();
+                    const refGrad = ctx.createLinearGradient(0, 0, 0, beam * 1.4);
+                    refGrad.addColorStop(0, hexToRgba('#ffffff', 0.35));
+                    refGrad.addColorStop(1, hexToRgba('#ffffff', 0));
+                    ctx.fillStyle = refGrad;
+                    ctx.fill();
+                    ctx.restore();
+                }
+                function drawUnderShadow(pathBuilder) {
+                    ctx.save();
+                    ctx.translate(0, beam * 0.18);
+                    ctx.globalAlpha = 0.22;
+                    pathBuilder();
+                    ctx.fillStyle = hexToRgba('#102028', 0.55);
+                    ctx.fill();
+                    ctx.restore();
+                }
+
+                // Boat type rendering
                 if (b.boatType === 'catamaran') {
-                    // Twin hulls
                     const hullOffset = beam * 0.55;
                     const hullWidth = beam * 0.35;
                     const r = hullWidth * 0.5;
-                    
-                    // Left hull
-                    ctx.beginPath();
-                    ctx.moveTo(-halfL + r, -hullOffset - r);
-                    ctx.lineTo(halfL - r, -hullOffset - r);
-                    ctx.arc(halfL - r, -hullOffset, r, -Math.PI/2, Math.PI/2);
-                    ctx.lineTo(-halfL + r, -hullOffset + r);
-                    ctx.arc(-halfL + r, -hullOffset, r, Math.PI/2, -Math.PI/2);
-                    ctx.closePath();
-                    ctx.fillStyle = deckGrad;
-                    ctx.fill();
-                    ctx.strokeStyle = strokeColor;
-                    ctx.lineWidth = b.hover ? 2 : 1;
-                    ctx.stroke();
-                    
-                    // Right hull
-                    ctx.beginPath();
-                    ctx.moveTo(-halfL + r, hullOffset - r);
-                    ctx.lineTo(halfL - r, hullOffset - r);
-                    ctx.arc(halfL - r, hullOffset, r, -Math.PI/2, Math.PI/2);
-                    ctx.lineTo(-halfL + r, hullOffset + r);
-                    ctx.arc(-halfL + r, hullOffset, r, Math.PI/2, -Math.PI/2);
-                    ctx.closePath();
-                    ctx.fillStyle = deckGrad;
-                    ctx.fill();
-                    ctx.stroke();
-                    
-                    // Connecting deck
+                    function hullLeft() {
+                        ctx.beginPath();
+                        ctx.moveTo(-halfL + r, -hullOffset - r);
+                        ctx.lineTo(halfL - r, -hullOffset - r);
+                        ctx.arc(halfL - r, -hullOffset, r, -Math.PI/2, Math.PI/2);
+                        ctx.lineTo(-halfL + r, -hullOffset + r);
+                        ctx.arc(-halfL + r, -hullOffset, r, Math.PI/2, -Math.PI/2);
+                        ctx.closePath();
+                    }
+                    function hullRight() {
+                        ctx.beginPath();
+                        ctx.moveTo(-halfL + r, hullOffset - r);
+                        ctx.lineTo(halfL - r, hullOffset - r);
+                        ctx.arc(halfL - r, hullOffset, r, -Math.PI/2, Math.PI/2);
+                        ctx.lineTo(-halfL + r, hullOffset + r);
+                        ctx.arc(-halfL + r, hullOffset, r, Math.PI/2, -Math.PI/2);
+                        ctx.closePath();
+                    }
+                    hullLeft(); ctx.fillStyle = deckGrad; ctx.fill(); ctx.strokeStyle = strokeColor; ctx.lineWidth = b.hover ? 2 : 1; ctx.stroke();
+                    drawUnderShadow(hullLeft); drawReflection(hullLeft);
+                    hullRight(); ctx.fillStyle = deckGrad; ctx.fill(); ctx.stroke();
+                    drawUnderShadow(hullRight); drawReflection(hullRight);
                     ctx.fillStyle = hexToRgba(stripeColor, b.hover ? 0.7 : 0.5);
                     ctx.fillRect(-halfL * 0.5, -hullOffset + r, halfL, hullOffset * 2 - r * 2);
-                    // Netting suggestion (diagonal lines)
-                    ctx.strokeStyle = hexToRgba('#ffffff', 0.25);
-                    ctx.lineWidth = 0.8;
+                    ctx.strokeStyle = hexToRgba('#ffffff', 0.25); ctx.lineWidth = 0.8;
                     for (let nx = -halfL * 0.45; nx < halfL * 0.5; nx += hullWidth * 0.65) {
+                        ctx.beginPath(); ctx.moveTo(nx, -hullOffset + r); ctx.lineTo(nx + hullWidth * 0.4, hullOffset - r); ctx.stroke();
+                    }
+                } else if (b.boatType === 'speedboat') {
+                    // Speedboat: low sleek hull with windshield
+                    const r = beam * 0.45;
+                    function hull() {
                         ctx.beginPath();
-                        ctx.moveTo(nx, -hullOffset + r);
-                        ctx.lineTo(nx + hullWidth * 0.4, hullOffset - r);
-                        ctx.stroke();
+                        ctx.moveTo(-halfL + r * 0.9, -r * 0.6);
+                        ctx.quadraticCurveTo(0, -r * 1.1, halfL * 0.8, -r * 0.6);
+                        ctx.lineTo(halfL, 0);
+                        ctx.lineTo(halfL * 0.8, r * 0.6);
+                        ctx.quadraticCurveTo(0, r * 1.05, -halfL + r * 0.9, r * 0.6);
+                        ctx.arc(-halfL + r * 0.9, 0, r * 0.6, Math.PI/2, -Math.PI/2, true);
+                        ctx.closePath();
                     }
-                    
-                } else if (b.boatType === 'yacht') {
-                    // Sleek yacht with cabin
-                    const r = beam * 0.5;
+                    hull(); ctx.fillStyle = deckGrad; ctx.fill(); ctx.strokeStyle = strokeColor; ctx.lineWidth = b.hover ? 2 : 1; ctx.stroke();
+                    drawUnderShadow(hull); drawReflection(hull);
+                    // Windshield
                     ctx.beginPath();
-                    ctx.moveTo(-halfL + r, -r);
-                    ctx.lineTo(halfL - r, -r);
-                    ctx.arc(halfL - r, 0, r, -Math.PI/2, Math.PI/2);
-                    ctx.lineTo(-halfL + r, r);
-                    ctx.arc(-halfL + r, 0, r, Math.PI/2, -Math.PI/2);
+                    ctx.moveTo(-halfL * 0.05, -r * 0.4);
+                    ctx.lineTo(halfL * 0.25, -r * 0.25);
+                    ctx.lineTo(halfL * 0.22, 0);
+                    ctx.lineTo(-halfL * 0.05, 0);
                     ctx.closePath();
-                    ctx.fillStyle = deckGrad;
-                    ctx.fill();
-                    ctx.strokeStyle = strokeColor;
-                    ctx.lineWidth = b.hover ? 2 : 1;
-                    ctx.stroke();
-                    
-                    // Cabin superstructure
-                    const cabinLen = halfL * 0.8;
-                    const cabinHeight = beam * 0.4;
-                    ctx.fillStyle = hexToRgba('#f0f0f0', 0.9);
-                    ctx.beginPath();
-                    ctx.roundRect(-cabinLen * 0.5, -cabinHeight * 0.5, cabinLen, cabinHeight, cabinHeight * 0.3);
-                    ctx.fill();
-                    ctx.strokeStyle = hexToRgba('#000000', 0.3);
-                    ctx.lineWidth = 1;
-                    ctx.stroke();
-                    
+                    const glassGrad = ctx.createLinearGradient(-halfL * 0.05, -r * 0.4, halfL * 0.25, 0);
+                    glassGrad.addColorStop(0, hexToRgba('#5ac8fa', 0.55));
+                    glassGrad.addColorStop(1, hexToRgba('#ffffff', 0.15));
+                    ctx.fillStyle = glassGrad; ctx.fill();
+                } else if (b.boatType === 'ferry') {
+                    // Ferry: tall multi-deck rectangular profile
+                    const r = beam * 0.55;
+                    function hull() {
+                        ctx.beginPath();
+                        ctx.moveTo(-halfL + r, -r * 0.9);
+                        ctx.lineTo(halfL - r, -r * 0.9);
+                        ctx.arc(halfL - r, 0, r, -Math.PI/2, Math.PI/2);
+                        ctx.lineTo(-halfL + r, r * 0.9);
+                        ctx.arc(-halfL + r, 0, r, Math.PI/2, -Math.PI/2);
+                        ctx.closePath();
+                    }
+                    hull(); ctx.fillStyle = deckGrad; ctx.fill(); ctx.strokeStyle = strokeColor; ctx.lineWidth = b.hover ? 2.2 : 1.2; ctx.stroke();
+                    drawUnderShadow(hull); drawReflection(hull);
+                    // Deck levels
+                    const deckCount = 3;
+                    for (let d = 0; d < deckCount; d++) {
+                        const dy = -beam * 0.6 + d * beam * 0.35;
+                        ctx.fillStyle = hexToRgba('#f8f8f8', 0.85);
+                        ctx.fillRect(-halfL * 0.55, dy, halfL * 1.1, beam * 0.22);
+                        // Windows
+                        for (let w = 0; w < 6; w++) {
+                            const wx = -halfL * 0.5 + w * (halfL * 0.18);
+                            ctx.fillStyle = hexToRgba('#5ac8fa', 0.5);
+                            ctx.fillRect(wx, dy + beam * 0.03, halfL * 0.12, beam * 0.12);
+                        }
+                    }
+                } else if (b.boatType === 'trawler') {
+                    // Trawler: displacement hull with wheelhouse and mast
+                    const r = beam * 0.5;
+                    function hull() {
+                        ctx.beginPath();
+                        ctx.moveTo(-halfL + r, -r * 0.8);
+                        ctx.quadraticCurveTo(0, -r * 1.3, halfL - r, -r * 0.8);
+                        ctx.arc(halfL - r, 0, r, -Math.PI/2, Math.PI/2);
+                        ctx.quadraticCurveTo(0, r * 1.3, -halfL + r, r * 0.8);
+                        ctx.arc(-halfL + r, 0, r, Math.PI/2, -Math.PI/2);
+                        ctx.closePath();
+                    }
+                    hull(); ctx.fillStyle = deckGrad; ctx.fill(); ctx.strokeStyle = strokeColor; ctx.lineWidth = b.hover ? 2.2 : 1.2; ctx.stroke();
+                    drawUnderShadow(hull); drawReflection(hull);
+                    // Wheelhouse
+                    ctx.fillStyle = hexToRgba('#ffffff', 0.9);
+                    ctx.beginPath(); ctx.roundRect(-halfL * 0.2, -beam * 0.65, halfL * 0.5, beam * 0.5, beam * 0.12); ctx.fill();
                     // Windows
-                    const windowCount = 4;
-                    for (let i = 0; i < windowCount; i++) {
-                        const wx = -cabinLen * 0.35 + (i / (windowCount - 1)) * (cabinLen * 0.7);
+                    for (let i = 0; i < 3; i++) {
+                        const wx = -halfL * 0.15 + i * (halfL * 0.15);
                         ctx.fillStyle = hexToRgba('#5ac8fa', 0.6);
-                        ctx.fillRect(wx - 3, -cabinHeight * 0.15, 6, cabinHeight * 0.25);
-                        // subtle window reflection
-                        ctx.fillStyle = hexToRgba('#ffffff', 0.25);
-                        ctx.fillRect(wx - 3, -cabinHeight * 0.15, 6, cabinHeight * 0.08);
+                        ctx.fillRect(wx, -beam * 0.55, halfL * 0.1, beam * 0.18);
                     }
-                    
-                } else if (b.boatType === 'dinghy') {
-                    // Small simple dinghy
-                    const r = beam * 0.5;
-                    ctx.beginPath();
-                    ctx.moveTo(-halfL + r, -r);
-                    ctx.lineTo(halfL - r * 1.2, -r * 0.7);
-                    ctx.arc(halfL - r * 0.8, 0, r * 0.8, -Math.PI/2, Math.PI/2);
-                    ctx.lineTo(-halfL + r, r);
-                    ctx.arc(-halfL + r, 0, r, Math.PI/2, -Math.PI/2);
-                    ctx.closePath();
-                    ctx.fillStyle = deckGrad;
-                    ctx.fill();
-                    ctx.strokeStyle = strokeColor;
-                    ctx.lineWidth = b.hover ? 2.5 : 1.5;
-                    ctx.stroke();
-                    
-                    // Thwart seats
-                    ctx.strokeStyle = hexToRgba('#000000', 0.4);
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.moveTo(-halfL * 0.3, -r);
-                    ctx.lineTo(-halfL * 0.3, r);
-                    ctx.stroke();
-                    ctx.beginPath();
-                    ctx.moveTo(halfL * 0.2, -r * 0.7);
-                    ctx.lineTo(halfL * 0.2, r * 0.7);
-                    ctx.stroke();
-                    // Oars (suggestion)
-                    ctx.strokeStyle = hexToRgba('#c18a3b', b.hover ? 0.9 : 0.6);
-                    ctx.lineWidth = 3;
-                    ctx.beginPath();
-                    ctx.moveTo(-halfL * 0.05, -r * 0.2);
-                    ctx.lineTo(-halfL * 0.35, -r * 0.9);
-                    ctx.stroke();
-                    ctx.beginPath();
-                    ctx.moveTo(-halfL * 0.05, r * 0.2);
-                    ctx.lineTo(-halfL * 0.35, r * 0.9);
-                    ctx.stroke();
-                    
-                } else if (b.boatType === 'racer') {
-                    // Racing sailboat - sleek and narrow
-                    const r = beam * 0.4;
-                    ctx.beginPath();
-                    // Sharp bow
-                    ctx.moveTo(halfL, 0);
-                    ctx.lineTo(halfL * 0.8, -r);
-                    ctx.lineTo(-halfL + r, -r);
-                    ctx.arc(-halfL + r, 0, r, -Math.PI/2, Math.PI/2);
-                    ctx.lineTo(halfL * 0.8, r);
-                    ctx.closePath();
-                    ctx.fillStyle = deckGrad;
-                    ctx.fill();
-                    ctx.strokeStyle = strokeColor;
-                    ctx.lineWidth = b.hover ? 2 : 1;
-                    ctx.stroke();
-                    
-                    // Racing stripe
-                    ctx.fillStyle = hexToRgba(stripeColor, b.hover ? 1.0 : 0.8);
-                    ctx.beginPath();
-                    ctx.moveTo(halfL * 0.9, 0);
-                    ctx.lineTo(halfL * 0.6, -r * 0.5);
-                    ctx.lineTo(-halfL * 0.6, -r * 0.3);
-                    ctx.lineTo(-halfL * 0.6, r * 0.3);
-                    ctx.lineTo(halfL * 0.6, r * 0.5);
-                    ctx.closePath();
-                    ctx.fill();
-                    // Keel suggestion (small fin below centerline)
-                    ctx.beginPath();
-                    ctx.moveTo(-halfL * 0.1, r * 0.05);
-                    ctx.lineTo(-halfL * 0.1, r * 0.45);
-                    ctx.lineTo(halfL * 0.05, r * 0.05);
-                    ctx.closePath();
-                    ctx.fillStyle = hexToRgba('#333', 0.6);
-                    ctx.fill();
-                    
-                } else {
-                    // Default sloop - classic sailboat
-                    const r = beam * 0.5;
-                    ctx.beginPath();
-                    ctx.moveTo(-halfL + r, -r);
-                    ctx.lineTo(halfL - r, -r);
-                    ctx.arc(halfL - r, 0, r, -Math.PI/2, Math.PI/2);
-                    ctx.lineTo(-halfL + r, r);
-                    ctx.arc(-halfL + r, 0, r, Math.PI/2, -Math.PI/2);
-                    ctx.closePath();
-                    ctx.fillStyle = deckGrad;
-                    ctx.fill();
-                    ctx.strokeStyle = strokeColor;
-                    ctx.lineWidth = b.hover ? 2 : 1;
-                    ctx.stroke();
-                    
                     // Mast
-                    ctx.strokeStyle = hexToRgba('#8B4513', 0.8);
-                    ctx.lineWidth = 2.5;
-                    ctx.beginPath();
-                    ctx.moveTo(0, -r);
-                    ctx.lineTo(0, -len * 0.8);
-                    ctx.stroke();
-                    
-                    // Sail
-                    ctx.fillStyle = hexToRgba(stripeColor, b.hover ? 0.7 : 0.5);
-                    ctx.beginPath();
-                    ctx.moveTo(0, -len * 0.75);
-                    ctx.lineTo(halfL * 0.6, -r);
-                    ctx.lineTo(0, -r);
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.strokeStyle = hexToRgba('#000000', 0.3);
-                    ctx.lineWidth = 1;
-                    ctx.stroke();
+                    ctx.strokeStyle = hexToRgba('#8B4513', 0.85); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(halfL * 0.05, -beam * 0.6); ctx.lineTo(halfL * 0.05, -len * 0.55); ctx.stroke();
+                    // Radar / rig
+                    ctx.beginPath(); ctx.arc(halfL * 0.05, -len * 0.55, beam * 0.15, 0, Math.PI * 2); ctx.fillStyle = hexToRgba(stripeColor, 0.6); ctx.fill();
+                } else if (b.boatType === 'barge') {
+                    // Barge: flat hull carrying containers
+                    const r = beam * 0.45;
+                    function hull() {
+                        ctx.beginPath();
+                        ctx.moveTo(-halfL, -r * 0.6);
+                        ctx.lineTo(halfL, -r * 0.6);
+                        ctx.lineTo(halfL, r * 0.6);
+                        ctx.lineTo(-halfL, r * 0.6);
+                        ctx.closePath();
+                    }
+                    hull(); ctx.fillStyle = deckGrad; ctx.fill(); ctx.strokeStyle = strokeColor; ctx.lineWidth = b.hover ? 2.2 : 1.2; ctx.stroke();
+                    drawUnderShadow(hull); drawReflection(hull);
+                    // Cargo stacks
+                    const stackCount = 4;
+                    for (let s = 0; s < stackCount; s++) {
+                        const sx = -halfL * 0.85 + s * (halfL * 0.55);
+                        const sh = beam * (0.25 + (s % 2) * 0.15);
+                        ctx.fillStyle = hexToRgba(b.color || '#ffaa00', 0.75);
+                        ctx.fillRect(sx, -sh * 0.5, halfL * 0.3, sh);
+                    }
+                } else if (b.boatType === 'kayak') {
+                    // Kayak: very narrow lens shape with paddles
+                    const r = beam * 0.35;
+                    function hull() {
+                        ctx.beginPath();
+                        ctx.moveTo(-halfL, 0);
+                        ctx.quadraticCurveTo(-halfL * 0.3, -r * 1.4, 0, -r * 1.2);
+                        ctx.quadraticCurveTo(halfL * 0.3, -r * 1.4, halfL, 0);
+                        ctx.quadraticCurveTo(halfL * 0.3, r * 1.4, 0, r * 1.2);
+                        ctx.quadraticCurveTo(-halfL * 0.3, r * 1.4, -halfL, 0);
+                        ctx.closePath();
+                    }
+                    hull(); ctx.fillStyle = deckGrad; ctx.fill(); ctx.strokeStyle = strokeColor; ctx.lineWidth = b.hover ? 2 : 1; ctx.stroke();
+                    drawReflection(hull);
+                    // Seat opening
+                    ctx.beginPath(); ctx.ellipse(0, 0, halfL * 0.25, r * 0.9, 0, 0, Math.PI * 2); ctx.fillStyle = hexToRgba('#000000', 0.25); ctx.fill();
+                    // Paddles
+                    ctx.strokeStyle = hexToRgba('#c18a3b', b.hover ? 0.9 : 0.6); ctx.lineWidth = 3;
+                    ctx.beginPath(); ctx.moveTo(-halfL * 0.1, 0); ctx.lineTo(-halfL * 0.4, -r * 2.2); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(-halfL * 0.1, 0); ctx.lineTo(-halfL * 0.4, r * 2.2); ctx.stroke();
+                } else if (b.boatType === 'yacht') {
+                    const r = beam * 0.5;
+                    function hull() {
+                        ctx.beginPath();
+                        ctx.moveTo(-halfL + r, -r);
+                        ctx.quadraticCurveTo(0, -r * 1.15, halfL - r, -r);
+                        ctx.arc(halfL - r, 0, r, -Math.PI/2, Math.PI/2);
+                        ctx.quadraticCurveTo(0, r * 1.15, -halfL + r, r);
+                        ctx.arc(-halfL + r, 0, r, Math.PI/2, -Math.PI/2);
+                        ctx.closePath();
+                    }
+                    hull(); ctx.fillStyle = deckGrad; ctx.fill(); ctx.strokeStyle = strokeColor; ctx.lineWidth = b.hover ? 2 : 1; ctx.stroke();
+                    drawUnderShadow(hull); drawReflection(hull);
+                    const cabinLen = halfL * 0.8; const cabinHeight = beam * 0.4;
+                    ctx.fillStyle = hexToRgba('#f0f0f0', 0.9);
+                    ctx.beginPath(); ctx.roundRect(-cabinLen * 0.5, -cabinHeight * 0.5, cabinLen, cabinHeight, cabinHeight * 0.3); ctx.fill();
+                    ctx.strokeStyle = hexToRgba('#000000', 0.3); ctx.lineWidth = 1; ctx.stroke();
+                    for (let i = 0; i < 4; i++) {
+                        const wx = -cabinLen * 0.35 + (i / 3) * (cabinLen * 0.7);
+                        ctx.fillStyle = hexToRgba('#5ac8fa', 0.6); ctx.fillRect(wx - 3, -cabinHeight * 0.15, 6, cabinHeight * 0.25);
+                        ctx.fillStyle = hexToRgba('#ffffff', 0.25); ctx.fillRect(wx - 3, -cabinHeight * 0.15, 6, cabinHeight * 0.08);
+                    }
+                } else if (b.boatType === 'dinghy') {
+                    const r = beam * 0.5;
+                    function hull() {
+                        ctx.beginPath();
+                        ctx.moveTo(-halfL + r, -r);
+                        ctx.quadraticCurveTo(0, -r * 1.25, halfL - r * 1.2, -r * 0.7);
+                        ctx.arc(halfL - r * 0.8, 0, r * 0.8, -Math.PI/2, Math.PI/2);
+                        ctx.quadraticCurveTo(0, r * 1.15, -halfL + r, r);
+                        ctx.arc(-halfL + r, 0, r, Math.PI/2, -Math.PI/2);
+                        ctx.closePath();
+                    }
+                    hull(); ctx.fillStyle = deckGrad; ctx.fill(); ctx.strokeStyle = strokeColor; ctx.lineWidth = b.hover ? 2.5 : 1.5; ctx.stroke();
+                    drawReflection(hull);
+                    ctx.strokeStyle = hexToRgba('#000000', 0.4); ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.moveTo(-halfL * 0.3, -r); ctx.lineTo(-halfL * 0.3, r); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(halfL * 0.2, -r * 0.7); ctx.lineTo(halfL * 0.2, r * 0.7); ctx.stroke();
+                    ctx.strokeStyle = hexToRgba('#c18a3b', b.hover ? 0.9 : 0.6); ctx.lineWidth = 3;
+                    ctx.beginPath(); ctx.moveTo(-halfL * 0.05, -r * 0.2); ctx.lineTo(-halfL * 0.35, -r * 0.9); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(-halfL * 0.05, r * 0.2); ctx.lineTo(-halfL * 0.35, r * 0.9); ctx.stroke();
+                } else if (b.boatType === 'racer') {
+                    const r = beam * 0.4;
+                    function hull() {
+                        ctx.beginPath();
+                        ctx.moveTo(halfL, 0);
+                        ctx.quadraticCurveTo(halfL * 0.75, -r * 1.4, halfL * 0.5, -r);
+                        ctx.lineTo(-halfL + r, -r);
+                        ctx.arc(-halfL + r, 0, r, -Math.PI/2, Math.PI/2);
+                        ctx.lineTo(halfL * 0.5, r);
+                        ctx.quadraticCurveTo(halfL * 0.75, r * 1.4, halfL, 0);
+                        ctx.closePath();
+                    }
+                    hull(); ctx.fillStyle = deckGrad; ctx.fill(); ctx.strokeStyle = strokeColor; ctx.lineWidth = b.hover ? 2 : 1; ctx.stroke();
+                    drawUnderShadow(hull); drawReflection(hull);
+                    ctx.fillStyle = hexToRgba(stripeColor, b.hover ? 1.0 : 0.8);
+                    ctx.beginPath(); ctx.moveTo(halfL * 0.9, 0); ctx.lineTo(halfL * 0.6, -r * 0.5); ctx.lineTo(-halfL * 0.6, -r * 0.3); ctx.lineTo(-halfL * 0.6, r * 0.3); ctx.lineTo(halfL * 0.6, r * 0.5); ctx.closePath(); ctx.fill();
+                    ctx.beginPath(); ctx.moveTo(-halfL * 0.1, r * 0.05); ctx.lineTo(-halfL * 0.1, r * 0.45); ctx.lineTo(halfL * 0.05, r * 0.05); ctx.closePath(); ctx.fillStyle = hexToRgba('#333', 0.6); ctx.fill();
+                } else { // sloop
+                    const r = beam * 0.5;
+                    function hull() {
+                        ctx.beginPath();
+                        ctx.moveTo(-halfL + r, -r);
+                        ctx.quadraticCurveTo(0, -r * 1.2, halfL - r, -r);
+                        ctx.arc(halfL - r, 0, r, -Math.PI/2, Math.PI/2);
+                        ctx.quadraticCurveTo(0, r * 1.2, -halfL + r, r);
+                        ctx.arc(-halfL + r, 0, r, Math.PI/2, -Math.PI/2);
+                        ctx.closePath();
+                    }
+                    hull(); ctx.fillStyle = deckGrad; ctx.fill(); ctx.strokeStyle = strokeColor; ctx.lineWidth = b.hover ? 2 : 1; ctx.stroke();
+                    drawUnderShadow(hull); drawReflection(hull);
+                    // Mast & billowed sail
+                    ctx.strokeStyle = hexToRgba('#8B4513', 0.8); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(0, -r); ctx.lineTo(0, -len * 0.8); ctx.stroke();
+                    const billow = Math.sin(t * 1.2 + b.phase) * r * 0.35;
+                    ctx.fillStyle = hexToRgba(stripeColor, b.hover ? 0.75 : 0.55);
+                    ctx.beginPath(); ctx.moveTo(0, -len * 0.75); ctx.quadraticCurveTo(halfL * 0.45 + billow, -len * 0.4, halfL * 0.6, -r); ctx.lineTo(0, -r); ctx.closePath(); ctx.fill();
+                    ctx.strokeStyle = hexToRgba('#000000', 0.25); ctx.lineWidth = 1; ctx.stroke();
                 }
 
-                // Category stripe (common to all types)
-                ctx.beginPath();
-                ctx.roundRect(-halfL * 0.6, -beam * 0.15, halfL * 1.2, beam * 0.3, beam * 0.12);
-                ctx.fillStyle = hexToRgba(stripeColor, b.hover ? 0.9 : 0.55);
-                ctx.fill();
-                ctx.globalAlpha = 1;
+                // Category stripe
+                ctx.beginPath(); ctx.roundRect(-halfL * 0.6, -beam * 0.15, halfL * 1.2, beam * 0.3, beam * 0.12);
+                ctx.fillStyle = hexToRgba(stripeColor, b.hover ? 0.9 : 0.55); ctx.fill();
 
-                // Product image (if loaded)
-                    // Removed product image rendering (simplified hull only)
-
-                // Tier extras
+                // Tier decorations
                 if (b.tier >= 2) {
-                    // Flag at bow
-                    ctx.beginPath();
-                    ctx.moveTo(halfL * 0.4, -beam * 0.05);
-                    ctx.lineTo(halfL * 0.55, -beam * 0.25);
-                    ctx.lineTo(halfL * 0.55, beam * 0.0);
-                    ctx.closePath();
-                    ctx.fillStyle = hexToRgba(stripeColor, b.hover ? 0.85 : 0.6);
-                    ctx.fill();
+                    ctx.beginPath(); ctx.moveTo(halfL * 0.4, -beam * 0.05); ctx.lineTo(halfL * 0.55, -beam * 0.25); ctx.lineTo(halfL * 0.55, beam * 0.0); ctx.closePath();
+                    ctx.fillStyle = hexToRgba(stripeColor, b.hover ? 0.85 : 0.6); ctx.fill();
                 }
                 if (b.tier >= 3) {
-                    // Portholes along hull
                     const holeCount = Math.max(3, Math.floor(len / 30));
                     for (let i = 0; i < holeCount; i++) {
                         const fx = -halfL * 0.4 + (i / (holeCount - 1)) * (halfL * 0.8);
-                        ctx.beginPath();
-                        ctx.arc(fx, beam * 0.28, beam * 0.11, 0, Math.PI * 2);
-                        ctx.fillStyle = hexToRgba('#000000', b.hover ? 0.55 : 0.35);
-                        ctx.fill();
-                        ctx.beginPath();
-                        ctx.arc(fx, beam * 0.28, beam * 0.06, 0, Math.PI * 2);
-                        ctx.fillStyle = hexToRgba('#ffffff', b.hover ? 0.75 : 0.55);
-                        ctx.fill();
+                        ctx.beginPath(); ctx.arc(fx, beam * 0.28, beam * 0.11, 0, Math.PI * 2); ctx.fillStyle = hexToRgba('#000000', b.hover ? 0.55 : 0.35); ctx.fill();
+                        ctx.beginPath(); ctx.arc(fx, beam * 0.28, beam * 0.06, 0, Math.PI * 2); ctx.fillStyle = hexToRgba('#ffffff', b.hover ? 0.75 : 0.55); ctx.fill();
                     }
                 }
 
-                // Bow marker (small triangle at the front)
-                ctx.beginPath();
-                ctx.moveTo(halfL - 1, 0);
-                ctx.lineTo(halfL * 0.75, -beam * 0.25);
-                ctx.lineTo(halfL * 0.75, beam * 0.25);
-                ctx.closePath();
-                ctx.fillStyle = hexToRgba('#ffffff', 0.9);
-                ctx.fill();
+                // Bow marker
+                ctx.beginPath(); ctx.moveTo(halfL - 1, 0); ctx.lineTo(halfL * 0.75, -beam * 0.25); ctx.lineTo(halfL * 0.75, beam * 0.25); ctx.closePath(); ctx.fillStyle = hexToRgba('#ffffff', 0.9); ctx.fill();
+                // Center mast dot
+                ctx.beginPath(); ctx.arc(0, 0, Math.max(1.5, beam * 0.08), 0, Math.PI * 2); ctx.fillStyle = colors.accent; ctx.fill();
 
-                // Mast dot (decorative)
-                ctx.beginPath();
-                ctx.arc(0, 0, Math.max(1.5, beam * 0.08), 0, Math.PI * 2);
-                ctx.fillStyle = colors.accent;
-                ctx.fill();
-
-                // Wake behind stern (scale with speed and slightly with tier)
+                // Layered wake
                 const speedMag = Math.hypot(b.speedX || 0, b.speedY || 0);
-                const speedNorm = Math.min(1, speedMag / BOAT_SPEED); // 0..1 based on uniform speed
-                const wakeLenScale = 0.18 + speedNorm * 0.28 + (b.tier - 1) * 0.02;
-                const wakeWidthScale = 0.12 + speedNorm * 0.12 + (b.tier - 1) * 0.02;
+                const speedNorm = Math.min(1, speedMag / (b.speedRef || BOAT_SPEED));
+                const wakeLenScale = (0.18 + speedNorm * 0.32 + (b.tier - 1) * 0.03) * (b.wakeFactor || 1);
+                const wakeWidthScale = (0.12 + speedNorm * 0.15 + (b.tier - 1) * 0.03) * (b.wakeFactor || 1);
                 ctx.globalAlpha = 0.18 + (b.tier - 1) * 0.05;
-                ctx.beginPath();
-                ctx.moveTo(-halfL, 0);
-                ctx.lineTo(-halfL - len * wakeLenScale, -beam * wakeWidthScale);
-                ctx.lineTo(-halfL - len * wakeLenScale, beam * wakeWidthScale);
-                ctx.closePath();
-                ctx.fillStyle = '#ffffff';
-                ctx.fill();
-                ctx.globalAlpha = 1;
+                ctx.beginPath(); ctx.moveTo(-halfL, 0); ctx.lineTo(-halfL - len * wakeLenScale, -beam * wakeWidthScale); ctx.lineTo(-halfL - len * wakeLenScale, beam * wakeWidthScale); ctx.closePath(); ctx.fillStyle = '#ffffff'; ctx.fill();
+                ctx.globalAlpha = 0.12;
+                ctx.beginPath(); ctx.moveTo(-halfL, 0); ctx.lineTo(-halfL - len * wakeLenScale * 0.7, -beam * wakeWidthScale * 0.45); ctx.lineTo(-halfL - len * wakeLenScale * 0.7, beam * wakeWidthScale * 0.45); ctx.closePath();
+                const wakeGrad = ctx.createLinearGradient(-halfL, 0, -halfL - len * wakeLenScale * 0.7, 0);
+                wakeGrad.addColorStop(0, hexToRgba('#ffffff', 0.55)); wakeGrad.addColorStop(1, hexToRgba('#ffffff', 0));
+                ctx.fillStyle = wakeGrad; ctx.fill(); ctx.globalAlpha = 1;
 
+                // Engine wake / paddle ripples
+                if (['speedboat','ferry','trawler','barge'].includes(b.boatType)) {
+                    ctx.globalAlpha = 0.18 + 0.25 * speedNorm;
+                    ctx.beginPath();
+                    ctx.moveTo(-halfL - len * wakeLenScale * (0.10 + 0.10 * speedNorm), 0);
+                    ctx.lineTo(-halfL - len * wakeLenScale * (0.45 + 0.20 * speedNorm), -beam * wakeWidthScale * (0.25 + 0.15 * speedNorm));
+                    ctx.lineTo(-halfL - len * wakeLenScale * (0.45 + 0.20 * speedNorm), beam * wakeWidthScale * (0.25 + 0.15 * speedNorm));
+                    ctx.closePath();
+                    const engineGrad = ctx.createLinearGradient(-halfL, 0, -halfL - len * wakeLenScale * (0.45 + 0.20 * speedNorm), 0);
+                    engineGrad.addColorStop(0, hexToRgba('#ffffff', 0.75));
+                    engineGrad.addColorStop(1, hexToRgba('#ffffff', 0));
+                    ctx.fillStyle = engineGrad; ctx.fill();
+                    ctx.globalAlpha = 1;
+                } else if (b.boatType === 'kayak') {
+                    ctx.globalAlpha = 0.25;
+                    for (let r = 0; r < 3; r++) {
+                        ctx.beginPath();
+                        ctx.arc(-halfL - r * beam * (0.5 + 0.2 * speedNorm), 0, beam * (0.3 + r * 0.22 + 0.08 * speedNorm), 0, Math.PI * 2);
+                        ctx.strokeStyle = hexToRgba('#ffffff', 0.5 - r * 0.15);
+                        ctx.lineWidth = 0.9;
+                        ctx.stroke();
+                    }
+                    ctx.globalAlpha = 1;
+                }
 
                 ctx.restore();
 
-                // Update cached screen bounds for hit testing (in CSS px coordinates)
-                    // Forward-biased reduction: shrink forward portion of hitbox.
-                    // We shift the hitbox slightly backward along the heading vector so the front tip
-                    // is less sensitive while keeping some width for usability.
-                    const hx = Math.cos(heading);
-                    const hy = Math.sin(heading);
-                    const hitLen = len * 0.35;      // shorter than hull (35%, reduced from 45%)
-                    const hitBeam = beam * 0.35;    // narrower (35%, reduced from 45%)
-                    // Shift center backward 20% of hull length to remove more of front area
-                    const centerShift = len * 0.20;
-                    const hitCenterX = x - hx * centerShift;
-                    const hitCenterY = y - hy * centerShift;
-                    b.screenX = hitCenterX - hitLen / 2;
-                    b.screenY = hitCenterY - hitBeam / 2;
-                    b.boxW = hitLen;
-                    b.boxH = hitBeam;
+                // Hitbox (reduced forward sensitivity retained)
+                const hx = Math.cos(heading); const hy = Math.sin(heading);
+                const hitLen = len * 0.35; const hitBeam = beam * 0.35;
+                const centerShift = len * 0.20;
+                const hitCenterX = x - hx * centerShift; const hitCenterY = y - hy * centerShift;
+                b.screenX = hitCenterX - hitLen / 2; b.screenY = hitCenterY - hitBeam / 2; b.boxW = hitLen; b.boxH = hitBeam;
             }
 
             let last = now();
@@ -1581,12 +1645,43 @@
                     if (needsRespawn) {
                         // Choose new random direction
                         b.direction = Math.floor(Math.random() * 4);
-                        
-                        // Add angle variation and slight speed variation on respawn
+
+                        // Rotate boat type so all designs appear over time
+                        if (typeof window.__boatCycleIndex === 'undefined') {
+                            window.__boatCycleIndex = 0;
+                        }
+                        const ALL_BOAT_TYPES = ['sloop','catamaran','yacht','dinghy','racer','speedboat','ferry','trawler','barge','kayak'];
+                        window.__boatCycleIndex = (window.__boatCycleIndex + 1) % ALL_BOAT_TYPES.length;
+                        b.boatType = ALL_BOAT_TYPES[window.__boatCycleIndex];
+
+                        // Re-randomize tier, color, and wake strength
+                        const rTier = Math.random();
+                        b.tier = rTier > 0.85 ? 3 : (rTier > 0.55 ? 2 : 1);
+                        const palette = ['#1e90ff', '#ff7043', '#66bb6a', '#ab47bc', '#ffa726', '#29b6f6', '#ef5350', '#26a69a'];
+                        b.color = palette[Math.floor(Math.random() * palette.length)];
+                        b.wakeFactor = rand(0.8, 1.4);
+                        b.speedRef = BOAT_SPEED * 1.6;
+
+                        // Per-type motion profile
+                        const PROFILES = {
+                            sloop:      { speed: 1.00 },
+                            catamaran:  { speed: 1.05 },
+                            yacht:      { speed: 0.95 },
+                            dinghy:     { speed: 0.85 },
+                            racer:      { speed: 1.18 },
+                            speedboat:  { speed: 1.32 },
+                            ferry:      { speed: 0.78 },
+                            trawler:    { speed: 0.75 },
+                            barge:      { speed: 0.60 },
+                            kayak:      { speed: 0.92 }
+                        };
+                        const prof = PROFILES[b.boatType] || { speed: 1 };
+
+                        // Angle variation and wider speed range; apply profile speed factor
                         const angleVariation = rand(-0.35, 0.35); // ±20 degrees
-                        const speedVariation = rand(0.85, 1.15); // 85% to 115%
-                        const baseSpeed = BOAT_SPEED * speedVariation;
-                        
+                        const speedVariation = rand(0.6, 1.6);
+                        const baseSpeed = BOAT_SPEED * speedVariation * prof.speed;
+
                         let baseHeading;
                         switch(b.direction) {
                             case 0: // From left, moving right
@@ -1701,7 +1796,8 @@
                     b.hover = true;
                     hovered = true;
                     canvas.style.cursor = 'pointer';
-                    setTooltip(`${b.title} — $${Number(b.price).toFixed(2)}`, e.clientX, e.clientY);
+                    const speed = Math.hypot(b.speedX || 0, b.speedY || 0);
+                    setTooltip(`${b.boatType.toUpperCase()} — Speed ${Math.round(speed)}`, e.clientX, e.clientY);
                 } else {
                     canvas.style.cursor = 'default';
                     hideTooltip();
@@ -1709,21 +1805,10 @@
             });
             canvas.addEventListener('mouseleave', hideTooltip);
             canvas.addEventListener('click', (e) => {
-                const rect = canvas.getBoundingClientRect();
-                const mx = e.clientX - rect.left;
-                const my = e.clientY - rect.top;
-                const b = hitTest(mx, my);
-                if (b && b.id) {
-                    window.location.href = `/product/${b.id}`;
-                }
+                // No product navigation — boats are decorative now
+                return;
             });
 
-            // If no popular products, tweak overlay message
-            if (!products || products.length === 0) {
-                if (overlay) {
-                    overlay.querySelector('small').textContent = 'No popularity data yet — check back soon';
-                }
-            }
 
             requestAnimationFrame(tick);
         })();
