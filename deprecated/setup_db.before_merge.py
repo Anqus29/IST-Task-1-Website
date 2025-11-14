@@ -168,60 +168,60 @@ CREATE TABLE IF NOT EXISTS bids (
 """
 
 SAMPLE_USERS = [
-    # username, email, password_plain, is_admin, is_seller, business_name, desc, rating, total_sales, profile_picture
-    ("angus", "angus@example.com", "password123", 1, 1, "Coastal Marine Supply", "Premium sailing equipment and boat sales", 4.9, 45, "/static/img/product1.jpg"),
-    ("bob", "bob@example.com", "password123", 0, 0, None, None, 0, 0, "/static/img/product2.jpg"),
-    ("charlie", "charlie@example.com", "password123", 0, 1, "Ocean Breeze Yachts", "Quality sailboats and rigging specialists", 4.7, 82, "/static/img/product3.jpg")
+    # username, email, password_plain, is_admin, is_seller, business_name, desc, rating, total_sales
+    ("angus", "angus@example.com", "password123", 1, 1, "Coastal Marine Supply", "Premium sailing equipment and boat sales", 4.9, 45),
+    ("bob", "bob@example.com", "password123", 0, 0, None, None, 0, 0),
+    ("charlie", "charlie@example.com", "password123", 0, 1, "Ocean Breeze Yachts", "Quality sailboats and rigging specialists", 4.7, 82)
 ]
 
 SAMPLE_PRODUCTS = [
     # seller_id, title, description, price, stock, category, image_url
-    # Sailboats & Boats - use boats/sailing images (1, 2, 4, 5)
+    # Sailboats & Boats (rotating through 6 images)
     (1, "Classic 20ft Sailing Yacht", "Beautiful classic yacht with mahogany trim. Perfect for weekend coastal cruising. Recently serviced, ready to sail.", 15500.00, 1, "Sailboats", "/static/img/product1.jpg"),
     (3, "14ft Racing Dinghy", "Competition-ready racing dinghy. Fast and responsive, ideal for club racing or training.", 3200.00, 2, "Sailboats", "/static/img/product2.jpg"),
-    (1, "Luxury 28ft Cruiser", "Spacious cruiser with full cabin amenities. Sleeps 4, galley, head, and navigation station.", 28900.00, 1, "Yachts", "/static/img/product4.jpg"),
-    (3, "16ft Catamaran", "Stable and fast catamaran perfect for beach sailing. Easy to trailer and launch.", 5800.00, 1, "Sailboats", "/static/img/product5.jpg"),
-    (1, "Vintage Wooden Sloop", "Restored 1960s wooden sloop. Beautiful lines, excellent condition. A real head-turner.", 12000.00, 1, "Sailboats", "/static/img/product1.jpg"),
-    (3, "Performance Racing Yacht", "High-performance racing yacht with carbon fiber mast. Competitive and well-maintained.", 35000.00, 1, "Yachts", "/static/img/product2.jpg"),
+    (1, "Luxury 28ft Cruiser", "Spacious cruiser with full cabin amenities. Sleeps 4, galley, head, and navigation station.", 28900.00, 1, "Yachts", "/static/img/product3.jpg"),
+    (3, "16ft Catamaran", "Stable and fast catamaran perfect for beach sailing. Easy to trailer and launch.", 5800.00, 1, "Sailboats", "/static/img/product4.jpg"),
+    (1, "Vintage Wooden Sloop", "Restored 1960s wooden sloop. Beautiful lines, excellent condition. A real head-turner.", 12000.00, 1, "Sailboats", "/static/img/product5.jpg"),
+    (3, "Performance Racing Yacht", "High-performance racing yacht with carbon fiber mast. Competitive and well-maintained.", 35000.00, 1, "Yachts", "/static/img/product6.jpg"),
     
-    # Sails & Rigging - use fabric/equipment images (3, 4, 6)
-    (1, "Competition Spinnaker 35ft", "Lightweight racing spinnaker in excellent condition. Perfect for downwind sailing.", 850.00, 2, "Sails", "/static/img/product3.jpg"),
-    (3, "Cruising Mainsail 30ft", "Dacron cruising mainsail with three reef points. UV protected, like new.", 1450.00, 3, "Sails", "/static/img/product4.jpg"),
-    (1, "Storm Jib Heavy Duty", "High-quality storm jib for heavy weather. Essential offshore safety equipment.", 520.00, 4, "Sails", "/static/img/product6.jpg"),
-    (3, "Genoa Sail 120%", "Large overlapping genoa for light wind performance. Excellent shape retention.", 1280.00, 2, "Sails", "/static/img/product3.jpg"),
+    # Sails & Rigging (cycling through images)
+    (1, "Competition Spinnaker 35ft", "Lightweight racing spinnaker in excellent condition. Perfect for downwind sailing.", 850.00, 2, "Sails", "/static/img/product1.jpg"),
+    (3, "Cruising Mainsail 30ft", "Dacron cruising mainsail with three reef points. UV protected, like new.", 1450.00, 3, "Sails", "/static/img/product2.jpg"),
+    (1, "Storm Jib Heavy Duty", "High-quality storm jib for heavy weather. Essential offshore safety equipment.", 520.00, 4, "Sails", "/static/img/product3.jpg"),
+    (3, "Genoa Sail 120%", "Large overlapping genoa for light wind performance. Excellent shape retention.", 1280.00, 2, "Sails", "/static/img/product4.jpg"),
     
-    # Safety Equipment - use safety-related images (5, 6, 1)
+    # Safety Equipment (cycling images)
     (1, "Automatic Inflatable Life Jacket", "Auto-inflate PFD with harness. Coast Guard approved. Essential safety gear.", 145.00, 12, "Safety", "/static/img/product5.jpg"),
     (3, "Complete Flare Kit", "Offshore flare kit with hand-held and parachute flares. Current certification.", 185.00, 8, "Safety", "/static/img/product6.jpg"),
-    (1, "EPIRB 406 MHz", "Emergency position beacon with GPS. Registered and tested. Can save your life.", 450.00, 5, "Safety", "/static/img/product5.jpg"),
-    (3, "Life Raft 4-Person", "Self-inflating life raft for 4 people. Recently serviced and certified.", 2800.00, 2, "Safety", "/static/img/product1.jpg"),
+    (1, "EPIRB 406 MHz", "Emergency position beacon with GPS. Registered and tested. Can save your life.", 450.00, 5, "Safety", "/static/img/product1.jpg"),
+    (3, "Life Raft 4-Person", "Self-inflating life raft for 4 people. Recently serviced and certified.", 2800.00, 2, "Safety", "/static/img/product2.jpg"),
     
-    # Navigation & Electronics - use tech/equipment images (6, 3, 4)
-    (1, "Marine GPS Chartplotter", "Color GPS chartplotter with coastal charts. Easy to use, waterproof.", 895.00, 6, "Electronics", "/static/img/product6.jpg"),
-    (3, "VHF Marine Radio", "Waterproof VHF radio with DSC. Essential communication equipment.", 245.00, 10, "Electronics", "/static/img/product3.jpg"),
-    (1, "Depth Sounder", "Digital depth finder with alarm. Easy installation, accurate readings.", 180.00, 8, "Electronics", "/static/img/product4.jpg"),
+    # Navigation & Electronics (cycling images)
+    (1, "Marine GPS Chartplotter", "Color GPS chartplotter with coastal charts. Easy to use, waterproof.", 895.00, 6, "Electronics", "/static/img/product3.jpg"),
+    (3, "VHF Marine Radio", "Waterproof VHF radio with DSC. Essential communication equipment.", 245.00, 10, "Electronics", "/static/img/product4.jpg"),
+    (1, "Depth Sounder", "Digital depth finder with alarm. Easy installation, accurate readings.", 180.00, 8, "Electronics", "/static/img/product5.jpg"),
     (3, "Wind Instrument Set", "Complete wind speed and direction display. Essential for racing.", 560.00, 4, "Electronics", "/static/img/product6.jpg"),
     
-    # Anchors & Ground Tackle - use hardware images (3, 4, 6)
-    (1, "Plow Anchor 15kg", "High holding power anchor suitable for 30-40ft boats. Galvanized steel.", 185.00, 10, "Anchors", "/static/img/product3.jpg"),
-    (3, "Anchor Chain 50ft", "Heavy-duty galvanized chain. 8mm links, perfect for larger boats.", 220.00, 8, "Anchors", "/static/img/product4.jpg"),
-    (1, "Danforth Anchor 12kg", "Lightweight folding anchor ideal for cruising boats. Easy to stow.", 125.00, 12, "Anchors", "/static/img/product6.jpg"),
+    # Anchors & Ground Tackle (cycling images)
+    (1, "Plow Anchor 15kg", "High holding power anchor suitable for 30-40ft boats. Galvanized steel.", 185.00, 10, "Anchors", "/static/img/product1.jpg"),
+    (3, "Anchor Chain 50ft", "Heavy-duty galvanized chain. 8mm links, perfect for larger boats.", 220.00, 8, "Anchors", "/static/img/product2.jpg"),
+    (1, "Danforth Anchor 12kg", "Lightweight folding anchor ideal for cruising boats. Easy to stow.", 125.00, 12, "Anchors", "/static/img/product3.jpg"),
     
-    # Accessories & Parts - use varied images (2, 3, 4, 5, 6)
-    (3, "Sailing Gloves Premium", "Kevlar reinforced sailing gloves. Excellent grip and protection.", 65.00, 25, "Accessories", "/static/img/product2.jpg"),
-    (1, "Electric Windlass", "Powerful 12V windlass for easy anchor handling. Foot switches included.", 680.00, 3, "Accessories", "/static/img/product3.jpg"),
-    (3, "Teak Deck Panels", "Marine-grade teak panels for cockpit flooring. Beautiful and durable.", 240.00, 8, "Accessories", "/static/img/product4.jpg"),
-    (1, "Stainless Steel Cleats", "Pair of heavy-duty cleats. Perfect for mooring or docking.", 45.00, 20, "Parts", "/static/img/product5.jpg"),
-    (3, "Fender Set Marine", "Set of 4 inflatable fenders with rope. Protect your boat during docking.", 95.00, 15, "Accessories", "/static/img/product6.jpg"),
+    # Accessories & Parts (cycling images)
+    (3, "Sailing Gloves Premium", "Kevlar reinforced sailing gloves. Excellent grip and protection.", 65.00, 25, "Accessories", "/static/img/product4.jpg"),
+    (1, "Electric Windlass", "Powerful 12V windlass for easy anchor handling. Foot switches included.", 680.00, 3, "Accessories", "/static/img/product5.jpg"),
+    (3, "Teak Deck Panels", "Marine-grade teak panels for cockpit flooring. Beautiful and durable.", 240.00, 8, "Accessories", "/static/img/product6.jpg"),
+    (1, "Stainless Steel Cleats", "Pair of heavy-duty cleats. Perfect for mooring or docking.", 45.00, 20, "Parts", "/static/img/product1.jpg"),
+    (3, "Fender Set Marine", "Set of 4 inflatable fenders with rope. Protect your boat during docking.", 95.00, 15, "Accessories", "/static/img/product2.jpg"),
     
-    # Rope & Lines - use rope/rigging images (3, 4, 6)
+    # Rope & Lines (cycling images)
     (1, "Braided Dock Line 50ft", "Premium dock line with spliced eye. UV resistant and strong.", 68.00, 18, "Ropes & Lines", "/static/img/product3.jpg"),
     (3, "Halyard Rope 100ft", "Low-stretch halyard line. Perfect for raising and lowering sails.", 125.00, 12, "Ropes & Lines", "/static/img/product4.jpg"),
-    (1, "Anchor Rode 200ft", "Complete anchor rode with chain and rope. Ready to deploy.", 285.00, 6, "Ropes & Lines", "/static/img/product6.jpg"),
+    (1, "Anchor Rode 200ft", "Complete anchor rode with chain and rope. Ready to deploy.", 285.00, 6, "Ropes & Lines", "/static/img/product5.jpg"),
     
-    # Clothing & Gear - use clothing/apparel images (2, 5)
-    (3, "Offshore Foul Weather Jacket", "Heavy-duty waterproof jacket with hood. Breathable and durable.", 195.00, 10, "Clothing", "/static/img/product2.jpg"),
-    (1, "Sailing Boots Waterproof", "Non-slip sailing boots. Comfortable for long days on deck.", 85.00, 14, "Clothing", "/static/img/product5.jpg"),
+    # Clothing & Gear (cycling images)
+    (3, "Offshore Foul Weather Jacket", "Heavy-duty waterproof jacket with hood. Breathable and durable.", 195.00, 10, "Clothing", "/static/img/product6.jpg"),
+    (1, "Sailing Boots Waterproof", "Non-slip sailing boots. Comfortable for long days on deck.", 85.00, 14, "Clothing", "/static/img/product1.jpg"),
     (3, "Sailing Cap UV Protection", "Wide-brim sailing cap with UV 50+ protection. Adjustable and floatable.", 32.00, 30, "Clothing", "/static/img/product2.jpg")
 ]
 
@@ -327,10 +327,10 @@ def initialize_db():
     users_hashed = []
     for u in SAMPLE_USERS:
         pw_hash = generate_password_hash(u[2])
-        users_hashed.append((u[0], u[1], pw_hash, u[3], u[4], u[5], u[6], u[7], u[8], u[9]))
+        users_hashed.append((u[0], u[1], pw_hash, u[3], u[4], u[5], u[6], u[7], u[8]))
     c.executemany('''
-        INSERT INTO users (username, email, password_hash, is_admin, is_seller, business_name, seller_description, rating, total_sales, profile_picture)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO users (username, email, password_hash, is_admin, is_seller, business_name, seller_description, rating, total_sales)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', users_hashed)
     
     # Insert regular products
@@ -449,5 +449,18 @@ def update_product_images():
     conn.close()
 
 if __name__ == "__main__":
-    # Create database schema and populate with sample data
+    # Create database schema
     initialize_db()
+    
+    # Populate with comprehensive example data
+    # To edit example data (products, users, auctions), modify populate_data.py and re-run this script
+    print("\n" + "="*60)
+    print("Populating database with example data...")
+    print("="*60 + "\n")
+    
+    try:
+        import populate_data
+        populate_data.populate_database()
+    except Exception as e:
+        print(f"⚠️  Warning: Could not run populate_data.py: {e}")
+        print("You can run it manually with: python populate_data.py")
