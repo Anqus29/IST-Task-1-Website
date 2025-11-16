@@ -1,12 +1,16 @@
+# Boat auctions route: show only auction products in boat-related categories
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_file, make_response
 from functools import wraps
+from math import ceil
 import os
 import json
 from decimal import Decimal
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from datetime import timedelta, datetime
 from sqlalchemy import func, desc, distinct, or_
 from sqlalchemy.exc import IntegrityError
+import uuid
 
 # Import models and db
 from models import db, User, Product, Order, OrderItem, Review, Favorite, Notification, \
@@ -21,6 +25,21 @@ app.config['PREFERRED_URL_SCHEME'] = os.environ.get('PREFERRED_URL_SCHEME', 'htt
 # Optionally pin a canonical server name for absolute URL generation (off by default)
 if os.environ.get('SERVER_NAME'):
     app.config['SERVER_NAME'] = os.environ['SERVER_NAME']
+
+# File upload configuration
+UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
+
+# Ensure upload directory exists
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def allowed_file(filename):
+    """Check if uploaded file has an allowed extension"""
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # SQLAlchemy configuration
 DB_PATH = os.path.join(os.path.dirname(__file__), "webstore.db")
@@ -157,8 +176,10 @@ def index():
     # Fetch stats
     stats = {
         'active_listings': Product.query.filter(Product.stock > 0).count(),
-        'total_sellers': db.session.query(func.count(distinct(Product.seller_id))).scalar() or 0,
-        'total_users': User.query.count()
+        'total_sellers': db.session.query(func.count(distinct(User.id))).filter(User.is_seller == 1).scalar() or 0,
+        'total_buyers': db.session.query(func.count(distinct(User.id))).filter(User.is_seller == 0).scalar() or 0,
+        'total_users': User.query.count(),
+        'total_products': Product.query.count()
     }
 
     # Fetch most popular products (by view_count, in stock) for ocean animation
@@ -191,7 +212,22 @@ def index():
          .all()
         recently_viewed = [dict(row._mapping) for row in recently_viewed_raw]
     
-    return render_template('index.html', featured_products=featured, recently_viewed=recently_viewed, stats=stats, popular_products=popular_products)
+    # Ending soon auctions (next 24h)
+    ending_soon_auctions = Product.query.filter(
+        Product.is_auction == 1,
+        Product.auction_end.isnot(None),
+        Product.auction_end > datetime.utcnow(),
+        Product.auction_end <= datetime.utcnow() + timedelta(hours=24)
+    ).order_by(Product.auction_end.asc()).limit(6).all()
+
+    return render_template(
+        'index.html',
+        featured_products=featured,
+        recently_viewed=recently_viewed,
+        stats=stats,
+        popular_products=popular_products,
+        ending_soon_auctions=ending_soon_auctions
+    )
 
 @app.route('/about')
 def about():
@@ -263,7 +299,7 @@ def products():
     min_price = request.args.get('min_price', '')
     max_price = request.args.get('max_price', '')
     page = int(request.args.get('page', 1))
-    per_page = 20
+    per_page = int(request.args.get('per_page', 12))
     
     # Build query with explicit column selection
     query = db.session.query(
@@ -304,14 +340,11 @@ def products():
     else:
         query = query.order_by(desc(Product.stock > 0), desc(Product.created_at))
     
-    # Get total count for pagination
-    total = query.count()
-    total_pages = (total + per_page - 1) // per_page
-    
-    # Get paginated results and convert to dictionaries
-    offset = (page - 1) * per_page
-    products_raw = query.limit(per_page).offset(offset).all()
+    # Pagination
+    total_products = query.count()
+    products_raw = query.offset((page-1)*per_page).limit(per_page).all()
     products_list = [dict(row._mapping) for row in products_raw]
+    total_pages = ceil(total_products / per_page)
     
     # Get distinct categories and conditions for filters
     categories = db.session.query(Product.category).distinct().filter(Product.category.isnot(None)).order_by(Product.category).all()
@@ -331,7 +364,7 @@ def products():
                          max_price=max_price,
                          page=page,
                          total_pages=total_pages,
-                         total=total)
+                         total=total_products)
 
 @app.route('/product/<int:product_id>')
 def product_detail(product_id):
@@ -345,7 +378,8 @@ def product_detail(product_id):
         Product.seller_id, Product.view_count, Product.created_at,
         Product.is_auction, Product.starting_bid, Product.current_bid,
         Product.auction_end, Product.reserve_price, Product.buy_now_price,
-        User.business_name, User.username.label('seller_username'), User.rating.label('seller_rating')
+        User.business_name, User.username.label('seller_username'), User.rating.label('seller_rating'),
+        User.seller_description, User.total_sales
     ).outerjoin(User, Product.seller_id == User.id)\
      .filter(Product.id == product_id)\
      .first()
@@ -357,9 +391,6 @@ def product_detail(product_id):
     # Convert to dictionary
     product = dict(product_raw._mapping)
     
-    # Also need the actual Product object for auction checks
-    product_obj = Product.query.get(product_id)
-
     # Also need the actual Product object for auction checks
     product_obj = Product.query.get(product_id)
 
@@ -948,8 +979,12 @@ def post_ad():
         category = request.form.get('category', 'Other').strip()
         image_url = request.form.get('image_url', '').strip() or None
         
-        # Auction fields
-        is_auction = request.form.get('is_auction') == 'on'
+        # Auction fields (force boats into auction mode)
+        boat_categories = {"Sailboats", "Powerboats", "Dinghies"}
+        requested_is_auction = request.form.get('is_auction') == 'on'
+        is_boat_category = category in boat_categories
+        # Force auction for boat categories regardless of checkbox
+        is_auction = requested_is_auction or is_boat_category
         starting_bid = request.form.get('starting_bid', '').strip()
         auction_duration = request.form.get('auction_duration', '').strip()
         reserve_price = request.form.get('reserve_price', '').strip()
@@ -970,6 +1005,9 @@ def post_ad():
                 # For auctions: stock must be 1 (one-of-a-kind)
                 stock_val = 1
                 starting_bid_val = float(starting_bid) if starting_bid else 0
+                # If boat category and no starting bid supplied, use listed price as starting bid
+                if is_boat_category and starting_bid_val <= 0:
+                    starting_bid_val = float(price) if price else 0
                 if starting_bid_val <= 0:
                     raise ValueError("Starting bid must be greater than 0")
                 
@@ -1019,13 +1057,45 @@ def post_ad():
         db.session.add(new_product)
         db.session.commit()
         
-        if is_auction:
+        if is_boat_category:
+            flash("Boat listing posted as an auction (boats are auction-only).", "success")
+        elif is_auction:
             flash("Your auction has been posted successfully!", "success")
         else:
             flash("Your ad has been posted successfully!", "success")
         return redirect(url_for('product_detail', product_id=new_product.id))
     
     return render_template('post_ad.html')
+
+@app.route('/admin/convert-boats', methods=['POST'])
+@login_required
+def admin_convert_boats():
+    # Simple admin utility to convert existing boat listings into auctions
+    user = User.query.get(session.get('user_id'))
+    if not user or not user.is_admin:
+        flash('Admin access required.', 'danger')
+        return redirect(url_for('index'))
+    boat_categories = ["Sailboats", "Powerboats", "Dinghies"]
+    now = datetime.utcnow()
+    changes = 0
+    products = Product.query.filter(Product.category.in_(boat_categories), Product.is_auction == 0).all()
+    for p in products:
+        p.is_auction = 1
+        # Use existing price as starting bid if no starting bid
+        if not p.starting_bid:
+            p.starting_bid = p.price if p.price else 1.0
+        if not p.current_bid:
+            p.current_bid = p.starting_bid
+        # If auction_end not set or in past, set 7 days from now
+        if not p.auction_end or p.auction_end < now:
+            p.auction_end = now + timedelta(days=7)
+        changes += 1
+    if changes:
+        db.session.commit()
+        flash(f'Converted {changes} boat listings to auctions.', 'success')
+    else:
+        flash('No boat listings required conversion.', 'info')
+    return redirect(url_for('auctions'))
 
 @app.route('/my-listings')
 @login_required
@@ -1250,6 +1320,10 @@ def admin_product_new():
             flash("Invalid price or stock.")
             return redirect(url_for('admin_product_new'))
         
+        crop_x = request.form.get('crop_x')
+        crop_y = request.form.get('crop_y')
+        crop_width = request.form.get('crop_width')
+        crop_height = request.form.get('crop_height')
         new_product = Product(
             seller_id=seller_id,
             title=title,
@@ -1257,7 +1331,11 @@ def admin_product_new():
             price=price_val,
             stock=stock_val,
             image_url=image_url,
-            category=category
+            category=category,
+            crop_x=float(crop_x) if crop_x else None,
+            crop_y=float(crop_y) if crop_y else None,
+            crop_width=float(crop_width) if crop_width else None,
+            crop_height=float(crop_height) if crop_height else None
         )
         db.session.add(new_product)
         db.session.commit()
@@ -1299,9 +1377,16 @@ def admin_product_edit(product_id):
         product.price = price_val
         product.stock = stock_val
         product.category = category
+        crop_x = request.form.get('crop_x')
+        crop_y = request.form.get('crop_y')
+        crop_width = request.form.get('crop_width')
+        crop_height = request.form.get('crop_height')
         if image_url is not None:
             product.image_url = image_url
-        
+        product.crop_x = float(crop_x) if crop_x else None
+        product.crop_y = float(crop_y) if crop_y else None
+        product.crop_width = float(crop_width) if crop_width else None
+        product.crop_height = float(crop_height) if crop_height else None
         db.session.commit()
         flash("Product updated.")
         return redirect(url_for('admin_products'))
@@ -1694,23 +1779,54 @@ def recently_viewed():
 
 @app.route('/auctions')
 def auctions():
-    """View all active auctions"""
-    # Get all auction products that haven't ended yet
-    active_auctions = Product.query.filter(
+    """Unified auctions view with optional filters: category=<name>, boat=1, ending=soon"""
+    now = datetime.utcnow()
+    boat_categories = ['Sailboats', 'Powerboats', 'Dinghies']
+    category = request.args.get('category', '').strip() or None
+    boat_only = request.args.get('boat') == '1'
+    ending_filter = request.args.get('ending') == 'soon'
+
+    base_query = Product.query.filter(
         Product.is_auction == 1,
-        Product.auction_end > datetime.utcnow()
-    ).order_by(Product.auction_end.asc()).all()
-    
-    # Get ending soon (within 24 hours)
-    ending_soon = Product.query.filter(
+        Product.auction_end.isnot(None),
+        Product.auction_end > now
+    )
+    if boat_only:
+        base_query = base_query.filter(Product.category.in_(boat_categories))
+    elif category:
+        base_query = base_query.filter(Product.category == category)
+
+    active_auctions = base_query.order_by(Product.auction_end.asc()).all()
+    # Ending soon subset (within next 24h)
+    soon_threshold = now + timedelta(hours=24)
+    ending_soon = [a for a in active_auctions if a.auction_end <= soon_threshold]
+
+    if ending_filter:
+        # Narrow to only ending soon if requested
+        active_auctions = ending_soon
+
+    # Distinct auction categories for filter dropdown
+    categories_rows = db.session.query(Product.category).filter(
         Product.is_auction == 1,
-        Product.auction_end > datetime.utcnow(),
-        Product.auction_end <= datetime.utcnow() + timedelta(hours=24)
-    ).order_by(Product.auction_end.asc()).all()
-    
-    return render_template('auctions.html', 
-                         active_auctions=active_auctions,
-                         ending_soon=ending_soon)
+        Product.auction_end > now,
+        Product.auction_end.isnot(None)
+    ).distinct().all()
+    auction_categories = sorted([r[0] for r in categories_rows if r[0]])
+
+    return render_template('auctions.html',
+                           active_auctions=active_auctions,
+                           ending_soon=ending_soon,
+                           boat_categories=boat_categories,
+                           selected_category=category,
+                           boat_only=boat_only,
+                           ending_filter=ending_filter,
+                           auction_categories=auction_categories)
+
+# Filtered boat auctions (only sailing/boat categories)
+@app.route('/boat-auctions')
+def boat_auctions():
+    # Redirect legacy boat auctions route to unified auctions view with boat filter
+    return redirect(url_for('auctions', boat='1'))
 
 @app.route('/product/<int:product_id>/bid', methods=['POST'])
 @login_required
@@ -1865,9 +1981,6 @@ def end_auction(product_id):
     flash("Auction ended successfully.", "success")
     return redirect(url_for('product_detail', product_id=product_id))
 
-if __name__ == "__main__":
-    # Allow overriding host/port via environment variables for flexibility
-    host = os.environ.get("HOST", "0.0.0.0")
-    port = int(os.environ.get("PORT", 5000))
-    app.run(debug=True, host=host, port=port)
+if __name__ == '__main__':
+    app.run(debug=True)
 

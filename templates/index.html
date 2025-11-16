@@ -485,6 +485,32 @@
     </div>
 
     <div class="container">
+        {% if ending_soon_auctions %}
+        <div class="mb-4">
+            <h2 class="h4">⏰ Ending Soon Auctions</h2>
+            <div class="d-flex gap-3 overflow-auto pb-2" style="white-space:nowrap;">
+                {% for a in ending_soon_auctions %}
+                <a href="{{ url_for('product_detail', product_id=a.id) }}" class="text-decoration-none" style="display:inline-block; min-width:220px;">
+                    <div class="card shadow-sm" style="width:220px;">
+                        {% if a.image_url %}
+                        <img src="{{ a.image_url }}" class="card-img-top" alt="{{ a.title }}" style="height:120px; object-fit:cover;">
+                        {% else %}
+                        <div class="card-img-top d-flex align-items-center justify-content-center bg-light" style="height:120px; font-size:12px; color:#666;">No Image</div>
+                        {% endif %}
+                        <div class="card-body p-2">
+                            <div class="small fw-bold text-truncate" title="{{ a.title }}">{{ a.title }}</div>
+                            <div class="small text-muted">{{ a.category }}</div>
+                            <div class="small">
+                                ${{ '%.2f'|format(a.current_bid or a.starting_bid) }}
+                                <span class="badge bg-danger ms-1">Ends {{ a.auction_end.strftime('%H:%M') }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
         
         <!-- Location Modal -->
         <div class="modal fade" id="locationModal" tabindex="-1" aria-labelledby="locationModalLabel" aria-hidden="true">
@@ -1122,9 +1148,26 @@
                 const amplitudeScaled = profile.amp * 0.7; // scale down to canvas units
                 frequency = profile.freq / 1000; // override base frequency (stored as per-ms factor)
                 
-                // Per-boat color and wake factor
-                const palette = ['#1e90ff', '#ff7043', '#66bb6a', '#ab47bc', '#ffa726', '#29b6f6', '#ef5350', '#26a69a'];
-                const color = palette[Math.floor(Math.random() * palette.length)];
+                // Realistic boat colors - common maritime hull colors
+                const realisticPalette = [
+                    '#F8F9FA', // Crisp white
+                    '#0D2840', // Deep navy
+                    '#D32F2F', // Vibrant red
+                    '#2E7D32', // Forest green
+                    '#1565C0', // Royal blue
+                    '#6D4C41', // Rich mahogany
+                    '#37474F', // Slate gray
+                    '#ECEFF1', // Pearl white
+                    '#C62828', // Deep red
+                    '#1976D2', // Ocean blue
+                    '#FBC02D', // Golden yellow
+                    '#455A64', // Blue gray
+                    '#00897B', // Teal
+                    '#5D4037', // Brown
+                    '#303F9F', // Indigo
+                    '#E64A19'  // Burnt orange
+                ];
+                const color = realisticPalette[Math.floor(Math.random() * realisticPalette.length)];
                 const wakeFactor = rand(0.8, 1.4);
                 const speedRef = BOAT_SPEED * 1.6;
 
@@ -1163,41 +1206,20 @@
                 const dayLight = 0.5 - 0.5 * Math.cos(2 * Math.PI * p); // 0 at midnight, 1 at noon
                 const nightBlend = 1 - dayLight;
 
-                // Water gradient blended between day and night palettes
-                const dayTop = '#5fb8ff', dayMid = '#1f8bd4', dayBot = '#0e629b';
-                const nightTop = '#00152a', nightMid = '#00223d', nightBot = '#00294d';
+                // Clean ocean gradient - simple and elegant
+                const dayTop = '#5BA8D6', dayMid = '#2E7AB8', dayBot = '#1A5180';
+                const nightTop = '#0A1420', nightMid = '#0D1F35', nightBot = '#0F2842';
                 const topCol = mixHex(nightTop, dayTop, dayLight);
                 const midCol = mixHex(nightMid, dayMid, dayLight);
                 const botCol = mixHex(nightBot, dayBot, dayLight);
+                
+                // Simple linear gradient
                 const grad = ctx.createLinearGradient(0, 0, 0, height);
-                grad.addColorStop(0, hexToRgba(topCol, 0.95));
-                grad.addColorStop(0.55, hexToRgba(midCol, 0.98));
-                grad.addColorStop(1, hexToRgba(botCol, 1.0));
+                grad.addColorStop(0, topCol);
+                grad.addColorStop(0.6, midCol);
+                grad.addColorStop(1, botCol);
                 ctx.fillStyle = grad;
                 ctx.fillRect(0, 0, width, height);
-
-                // Starfield removed — night ambiance driven by glow and boat lights
-
-                // Dynamic wave bands with slight perspective skew; alpha scales with daylight
-                const layers = [
-                    { amp: 12, wl: 210, spd: 0.25, alpha: 0.16 + 0.10 * dayLight, shade: colors.wave },
-                    { amp: 8,  wl: 140, spd: 0.45, alpha: 0.12 + 0.08 * dayLight, shade: colors.wave },
-                    { amp: 5,  wl: 90,  spd: 0.75, alpha: 0.10 + 0.06 * dayLight, shade: colors.wave }
-                ];
-                layers.forEach((L, idx) => {
-                    ctx.beginPath();
-                    for (let x = 0; x <= width; x += 3) {
-                        const y = height * 0.58 + Math.sin((x / L.wl) + t * L.spd) * L.amp + idx * 6;
-                        // Parallax skew: shift based on layer index
-                        const sx = x + Math.sin(t * 0.15 + idx) * idx * 2;
-                        if (x === 0) ctx.moveTo(sx, y); else ctx.lineTo(sx, y);
-                    }
-                    ctx.lineTo(width, height);
-                    ctx.lineTo(0, height);
-                    ctx.closePath();
-                    ctx.fillStyle = hexToRgba(L.shade, L.alpha);
-                    ctx.fill();
-                });
 
                 // Sun/Moon glow
                 ctx.save();
@@ -1594,8 +1616,8 @@
                         // Stern white light
                         glow(-halfL * 0.7, 0, '#ffffff', 0.8);
                         
-                        // Rigging lights for sailboats (mast string lights - yellow)
-                        if (['sloop', 'catamaran', 'yacht', 'racer'].includes(b.boatType)) {
+                        // Rigging lights only for sailboats with actual masts
+                        if (['sloop', 'catamaran', 'yacht', 'dinghy', 'racer'].includes(b.boatType)) {
                             const mastHeight = len * 0.8;
                             const riggingCount = Math.max(3, Math.floor(len / 18));
                             for (let i = 0; i < riggingCount; i++) {
@@ -1625,7 +1647,8 @@
                 const speedNorm = Math.min(1, speedMag / (b.speedRef || BOAT_SPEED));
                 const wakeLenScale = (0.18 + speedNorm * 0.32 + (b.tier - 1) * 0.03) * (b.wakeFactor || 1);
                 const wakeWidthScale = (0.12 + speedNorm * 0.15 + (b.tier - 1) * 0.03) * (b.wakeFactor || 1);
-                const wakeBrightness = 0.35 + 0.65 * dayLight;
+                // Make wake significantly darker at night (min ~20% brightness)
+                const wakeBrightness = 0.20 + 0.80 * dayLight;
                 ctx.globalAlpha = (0.18 + (b.tier - 1) * 0.05) * wakeBrightness;
                 ctx.beginPath(); ctx.moveTo(-halfL, 0); ctx.lineTo(-halfL - len * wakeLenScale, -beam * wakeWidthScale); ctx.lineTo(-halfL - len * wakeLenScale, beam * wakeWidthScale); ctx.closePath(); ctx.fillStyle = '#ffffff'; ctx.fill();
                 ctx.globalAlpha = 0.12 * wakeBrightness;

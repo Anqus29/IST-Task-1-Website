@@ -283,10 +283,22 @@
           <p>{{ product['description'] }}</p>
         {% endif %}
 
-        {% if product['seller_description'] %}
+        {% if product['seller_description'] or product['business_name'] %}
           <div class="company-statement">
-            <strong>About {{ product['business_name'] or 'the seller' }}</strong>
-            <p class="mb-0">{{ product['seller_description'] }}</p>
+            <strong>About {{ product['business_name'] or product['seller_username'] }}</strong>
+            {% if product['seller_description'] %}
+              <p class="mb-2">{{ product['seller_description'] }}</p>
+            {% else %}
+              <p class="mb-2 text-muted">Seller has not added a description.</p>
+            {% endif %}
+            <div class="small text-muted">
+              {% if product['seller_rating'] is not none %}
+                ⭐ Rating: {{ '%.1f'|format(product['seller_rating']) }}
+              {% endif %}
+              {% if product['total_sales'] is not none %}
+                &middot; {{ product['total_sales'] }} sale{% if product['total_sales'] != 1 %}s{% endif %}
+              {% endif %}
+            </div>
           </div>
         {% endif %}
 

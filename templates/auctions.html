@@ -141,6 +141,26 @@
 <body>
     <div class="container">
         <h1>🔨 Live Auctions</h1>
+        <form method="get" class="mb-4 d-flex flex-wrap gap-2 align-items-end">
+            <div>
+                <label class="form-label small mb-1">Category</label>
+                <select name="category" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All</option>
+                    {% for c in auction_categories %}
+                        <option value="{{ c }}" {% if selected_category == c %}selected{% endif %}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-check ms-2">
+                <input class="form-check-input" type="checkbox" name="boat" value="1" id="boatOnlyChk" {% if boat_only %}checked{% endif %} onchange="this.form.submit()">
+                <label class="form-check-label small" for="boatOnlyChk">Boat only</label>
+            </div>
+            <div class="form-check ms-2">
+                <input class="form-check-input" type="checkbox" name="ending" value="soon" id="endingSoonChk" {% if ending_filter %}checked{% endif %} onchange="this.form.submit()">
+                <label class="form-check-label small" for="endingSoonChk">Ending &lt; 24h</label>
+            </div>
+            <noscript><button class="btn btn-sm btn-primary">Apply</button></noscript>
+        </form>
 
         {% if ending_soon %}
         <div class="auction-section">

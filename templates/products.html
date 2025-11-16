@@ -57,6 +57,13 @@
             transition: transform 0.2s, background-color 0.3s ease;
             position: relative;
             border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 370px;
+            height: 100%;
+            box-sizing: border-box;
         }
 
         .listing-card:hover {
@@ -134,6 +141,30 @@
             -webkit-box-orient: vertical;
         }
 
+        .product-title {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: normal;
+            max-width: 100%;
+            min-height: 2.6em;
+            font-size: 1rem;
+            margin: 0 auto 8px auto;
+        }
+
+        .image-box {
+            width: 220px;
+            height: 160px;
+            margin: 0 auto 8px auto;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         /* Mobile Responsive Styles */
         @media (max-width: 768px) {
             .search-bar {
@@ -173,6 +204,17 @@
                 padding: 0.25rem 0.5rem;
             }
         }
+
+        [data-theme="dark"] .listing-card,
+        [data-theme="dark"] .search-bar,
+        [data-theme="dark"] .image-box {
+            background-color: var(--card-bg) !important;
+            border-color: var(--border-color) !important;
+        }
+        [data-theme="dark"] .image-box img {
+            background-color: var(--card-bg) !important;
+            border: 1px solid var(--border-color) !important;
+        }
     </style>
 </head>
 <body>
@@ -197,21 +239,6 @@
                 </div>
             </div>
             
-            <!-- Category Chips -->
-            <div class="row">
-                <div class="col-12">
-                    <div class="d-flex flex-wrap gap-2">
-                        <a href="{{ url_for('products', sort=sort, search=search) }}" class="btn btn-sm {% if not category %}btn-primary{% else %}btn-outline-primary{% endif %}">
-                            All Categories
-                        </a>
-                        {% for cat in categories %}
-                            <a href="{{ url_for('products', category=cat, sort=sort, search=search) }}" class="btn btn-sm {% if category == cat %}btn-primary{% else %}btn-outline-primary{% endif %}">
-                                {{ cat }}
-                            </a>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -219,58 +246,82 @@
         <div class="row">
             <!-- Sidebar (desktop) -->
             <aside class="col-md-3 d-none d-md-block mb-3">
-                <div class="list-group">
+                <div class="list-group mb-3">
                     <a href="{{ url_for('products', sort=sort, search=search) }}" class="list-group-item list-group-item-action {% if not category %}active{% endif %}">All Categories</a>
                     {% for cat in categories %}
                         <a href="{{ url_for('products', category=cat, sort=sort, search=search) }}" class="list-group-item list-group-item-action {% if category == cat %}active{% endif %}">{{ cat }}</a>
                     {% endfor %}
                 </div>
+                <div class="list-group">
+                    <h6 class="list-group-item bg-light text-muted small fw-bold mb-0">AUCTIONS</h6>
+                    <a href="{{ url_for('auctions') }}" class="list-group-item list-group-item-action">Live Auctions</a>
+                    <a href="{{ url_for('auctions', ending='soon') }}" class="list-group-item list-group-item-action">Ending Soon</a>
+                    <a href="{{ url_for('auctions', boat='1') }}" class="list-group-item list-group-item-action">Boat Auctions</a>
+                </div>
             </aside>
 
             <!-- Main content -->
             <section class="col-12 col-md-9">
-                <div class="row">
+                <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
                     {% if products %}
                         {% for p in products %}
-                            <div class="col-md-6 col-lg-4">
-                                <div class="listing-card">
-                                    {% if p['stock'] is not none and p['stock'] == 0 %}
-                                        <span class="out-of-stock-badge">Out of Stock</span>
-                                    {% endif %}
-
-                                    <!-- Product Image -->
-                                    <div class="mb-2 text-center">
-                                        <a href="{{ url_for('product_detail', product_id=p['id']) }}" style="text-decoration: none;">
+                            <div class="col">
+                                <div class="listing-card h-100 shadow-sm border rounded-3 p-2 d-flex flex-column">
+                                    <a href="{{ url_for('product_detail', product_id=p['id']) }}" class="text-decoration-none">
+                                        <div class="image-box mb-2" style="width:100%; height:180px; overflow:hidden; display:flex; align-items:center; justify-content:center; background:#fff;">
                                             {% if 'image_url' in p.keys() and p['image_url'] %}
                                                 {% set img = p['image_url'] %}
                                                 {% if img.startswith('http://') or img.startswith('https://') or img.startswith('/') %}
-                                                    <img src="{{ img }}" alt="{{ p['title'] }}" style="max-height:160px; width:100%; object-fit:contain; background:#fff; border:1px solid #eee; padding:6px; border-radius:5px; cursor:pointer;">
+                                                    <img src="{{ img }}" alt="{{ p['title'] }}" style="max-width:100%; max-height:180px; object-fit:cover; object-position:center;">
                                                 {% else %}
-                                                    <img src="{{ url_for('static', filename='img/' ~ img) }}" alt="{{ p['title'] }}" style="max-height:160px; width:100%; object-fit:contain; background:#fff; border:1px solid #eee; padding:6px; border-radius:5px; cursor:pointer;">
+                                                    <img src="{{ url_for('static', filename='img/' ~ img) }}" alt="{{ p['title'] }}" style="max-width:100%; max-height:180px; object-fit:cover; object-position:center;">
                                                 {% endif %}
                                             {% else %}
-                                                <img src="https://via.placeholder.com/300x200/e9ecef/6c757d?text={{ p['title'][:20] }}" alt="{{ p['title'] }}" style="max-height:160px; width:100%; object-fit:contain; border:1px solid #eee; padding:6px; border-radius:5px; cursor:pointer;">
+                                                <img src="https://via.placeholder.com/220x180/e9ecef/6c757d?text={{ p['title'][:20] }}" alt="{{ p['title'] }}" style="max-width:100%; max-height:180px; object-fit:cover; object-position:center;">
                                             {% endif %}
-                                        </a>
+                                        </div>
+                                    </a>
+                                    <h5 class="product-title mb-1" title="{{ p['title'] }}">{{ p['title'] }}</h5>
+                                    <div class="mb-1">
+                                        {% if p['avg_rating'] is defined and p['avg_rating'] %}
+                                            {% for i in range(1, 6) %}
+                                                {% if p['avg_rating'] >= i %}
+                                                    <span style="color:#f5c518;">&#9733;</span>
+                                                {% else %}
+                                                    <span style="color:#e0e0e0;">&#9733;</span>
+                                                {% endif %}
+                                            {% endfor %}
+                                            <span class="text-muted small">({{ '%.1f'|format(p['avg_rating']) }})</span>
+                                        {% else %}
+                                            <span class="text-muted small">No ratings yet</span>
+                                        {% endif %}
                                     </div>
-
-                                    <h5>{{ p['title'] }}</h5>
-                                    <p class="price">${{ '%.2f'|format(p['price']) }}</p>
+                                    <div class="mb-1">
+                                        <span class="price">${{ '%.2f'|format(p['price']) }}</span>
+                                        {% if p['rating'] %}
+                                            <span class="ms-2">
+                                                {% for i in range(1, 6) %}
+                                                    {% if p['rating'] >= i %}
+                                                        <span style="color:#f5c518;">&#9733;</span>
+                                                    {% else %}
+                                                        <span style="color:#e0e0e0;">&#9733;</span>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </span>
+                                        {% endif %}
+                                    </div>
                                     {% if 'category' in p.keys() and p['category'] %}
-                                        <span class="badge bg-secondary mb-2">{{ p['category'] }}</span>
+                                        <span class="badge bg-secondary mb-1">{{ p['category'] }}</span>
                                     {% endif %}
-
-                                    <div class="seller-info">
-                                        <a href="{{ url_for('seller_profile', seller_id=p['seller_id']) }}" class="text-decoration-none">
-                                            <span class="seller-name">{{ p['business_name'] or p['seller_name'] }}</span>
-                                            {% if p['rating'] %}
-                                                <span class="rating">★ {{ '%.1f'|format(p['rating']) }}</span>
-                                            {% endif %}
-                                        </a>
+                                    <div class="seller-info mb-2 text-muted small">
+                                        {% if p['seller_id'] %}
+                                            <a href="{{ url_for('seller_profile', seller_id=p['seller_id']) }}" class="text-decoration-none seller-name">{{ p['business_name'] or p['seller_name'] }}</a>
+                                        {% else %}
+                                            <span class="seller-name">No seller</span>
+                                        {% endif %}
                                     </div>
-
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="text-muted">Posted {{ p['created_at'].strftime('%Y-%m-%d') if p['created_at'] else '' }}</span>
+                                    <div class="mt-auto d-flex justify-content-between align-items-center">
+                                        <span class="text-muted small">{{ p['created_at'].strftime('%Y-%m-%d') if p['created_at'] else '' }}</span>
                                         <div>
                                             {% if session.get('username') %}
                                                 <form action="{{ url_for('add_favorite', product_id=p['id']) }}" method="post" style="display:inline;" class="favorite-form">
@@ -281,7 +332,7 @@
                                                     </button>
                                                 </form>
                                             {% endif %}
-                                            <a href="{{ url_for('product_detail', product_id=p['id']) }}" class="btn btn-sm btn-outline-primary">View Details</a>
+                                            <a href="{{ url_for('product_detail', product_id=p['id']) }}" class="btn btn-sm btn-outline-primary ms-1">View Details</a>
                                         </div>
                                     </div>
                                 </div>
@@ -293,6 +344,32 @@
                             <p>Try adjusting your search criteria or check back later for new listings.</p>
                         </div>
                     {% endif %}
+                </div>
+                <!-- Pagination Controls -->
+                <div class="row">
+                    <div class="col-12 d-flex justify-content-center my-4">
+                        {% if total_pages > 1 %}
+                            <nav aria-label="Product pagination">
+                                <ul class="pagination" style="background: var(--card-bg); border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 1px solid var(--border-color);">
+                                    {% if page > 1 %}
+                                        <li class="page-item">
+                                            <a class="page-link" style="background: var(--card-bg); color: var(--text-color); border-color: var(--border-color);" href="{{ url_for('products', page=page-1, per_page=per_page) }}">Previous</a>
+                                        </li>
+                                    {% endif %}
+                                    {% for p in range(1, total_pages+1) %}
+                                        <li class="page-item {% if p == page %}active{% endif %}">
+                                            <a class="page-link {% if p == page %}fw-bold{% endif %}" style="background: var(--card-bg); color: var(--text-color); border-color: var(--border-color);" href="{{ url_for('products', page=p, per_page=per_page) }}">{{ p }}</a>
+                                        </li>
+                                    {% endfor %}
+                                    {% if page < total_pages %}
+                                        <li class="page-item">
+                                            <a class="page-link" style="background: var(--card-bg); color: var(--text-color); border-color: var(--border-color);" href="{{ url_for('products', page=page+1, per_page=per_page) }}">Next</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        {% endif %}
+                    </div>
                 </div>
             </section>
         </div>

@@ -1,0 +1,84 @@
+{% include 'navbar.html' %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Boat Auctions - SailBay Marketplace</title>
+  <style>
+    :root { --primary-color:#1e5a8e; --ocean-blue:#006994; --accent-color:#FF6B35; --secondary-color:#f0f8ff; }
+    body { font-family:Arial,sans-serif; margin:0; background:var(--secondary-color); }
+    .container { max-width:1200px; margin:80px auto 20px; padding:20px; }
+    h1 { margin-bottom:30px; }
+    .auction-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:20px; }
+    .auction-card { background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.1); position:relative; transition:.2s; }
+    .auction-card:hover { transform:translateY(-4px); box-shadow:0 4px 14px rgba(0,0,0,0.18); }
+    .auction-badge { position:absolute; top:10px; left:10px; background:#1e5a8e; color:#fff; font-size:12px; padding:4px 8px; border-radius:4px; font-weight:600; }
+    .ending-soon { background:#d32f2f; }
+    .auction-image { width:100%; height:190px; object-fit:cover; background:#eee; }
+    .auction-info { padding:14px; display:flex; flex-direction:column; gap:6px; }
+    .title { font-size:17px; font-weight:600; line-height:1.2; height:2.4em; overflow:hidden; }
+    .price { font-size:22px; font-weight:bold; color:#2e7d32; }
+    .timer { font-size:13px; color:#555; }
+    .timer.urgent { color:#d32f2f; font-weight:600; }
+    .meta { display:flex; justify-content:space-between; font-size:12px; color:#666; }
+    .view-btn { display:block; text-align:center; background:#006994; color:#fff; padding:9px 10px; text-decoration:none; border-radius:4px; font-weight:600; margin-top:6px; }
+    .view-btn:hover { background:#005578; }
+    .no-auctions { background:#fff; padding:45px; text-align:center; border-radius:8px; color:#666; }
+    .category-tags { margin-bottom:18px; }
+    .category-tags span { display:inline-block; background:#fff; border:1px solid #cfd8dc; color:#37474f; padding:6px 10px; border-radius:16px; font-size:12px; margin:4px 6px 0 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚤 Boat & Sailing Auctions</h1>
+    <div class="category-tags">
+      {% for c in boat_categories %}<span>{{ c }}</span>{% endfor %}
+    </div>
+
+    {% if ending_soon and ending_soon|length > 0 %}
+    <h2>⏰ Ending Soon</h2>
+    <div class="auction-grid">
+      {% for a in ending_soon %}
+      <div class="auction-card">
+        <span class="auction-badge ending-soon">ENDING SOON</span>
+        {% if a.image_url %}<img src="{{ a.image_url }}" alt="{{ a.title }}" class="auction-image">{% else %}<div class="auction-image"></div>{% endif %}
+        <div class="auction-info">
+          <div class="title">{{ a.title }}</div>
+          <div class="price">${{ '%.2f'|format(a.current_bid or a.starting_bid) }}</div>
+          <div class="timer urgent">Ends: {{ a.auction_end.strftime('%b %d, %I:%M %p') }}</div>
+          <div class="meta"><span>{{ a.bids|length }} bid(s)</span><span>{{ a.category }}</span></div>
+          <a class="view-btn" href="{{ url_for('product_detail', product_id=a.id) }}">View & Bid</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <h2>Live Boat Auctions</h2>
+    {% if active_auctions and active_auctions|length > 0 %}
+    <div class="auction-grid">
+      {% for a in active_auctions %}
+      <div class="auction-card">
+        <span class="auction-badge">LIVE AUCTION</span>
+        {% if a.image_url %}<img src="{{ a.image_url }}" alt="{{ a.title }}" class="auction-image">{% else %}<div class="auction-image"></div>{% endif %}
+        <div class="auction-info">
+          <div class="title">{{ a.title }}</div>
+          <div class="price">${{ '%.2f'|format(a.current_bid or a.starting_bid) }}</div>
+          <div class="timer">Ends: {{ a.auction_end.strftime('%b %d, %I:%M %p') }}</div>
+          <div class="meta"><span>{{ a.bids|length }} bid(s)</span><span>{{ a.category }}</span></div>
+          <a class="view-btn" href="{{ url_for('product_detail', product_id=a.id) }}">View & Bid</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+      <div class="no-auctions">
+        <h3>No Boat Auctions Active</h3>
+        <p>Check back soon or browse all <a href="{{ url_for('auctions') }}">auctions</a>.</p>
+      </div>
+    {% endif %}
+  </div>
+  {% include 'footer.html' %}
+</body>
+</html>

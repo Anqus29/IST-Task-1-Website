@@ -193,6 +193,28 @@
         Admin Dashboard
       </a>
       {% endif %}
+      <!-- Auctions Section -->
+      <h6 class="list-group-item bg-light text-muted small fw-bold mb-0">AUCTIONS</h6>
+      <a href="{{ url_for('auctions') }}" class="list-group-item list-group-item-action">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-hammer me-2" viewBox="0 0 16 16">
+          <path d="M9.972 2.508a.5.5 0 0 0-.16-.556l-.178-.129a5.009 5.009 0 0 0-2.076-.783C6.215.862 4.504 1.229 2.84 3.133H1.786a.5.5 0 0 0-.354.147L.146 4.567a.5.5 0 0 0 0 .706l2.571 2.579a.5.5 0 0 0 .708 0l1.286-1.29a.5.5 0 0 0 .146-.353V5.57l8.387 8.873A.5.5 0 0 0 14 14.5l1.5-1.5a.5.5 0 0 0 .017-.689l-9.129-8.63c.747-.456 1.772-.839 3.112-.839a.5.5 0 0 0 .472-.334z"/>
+        </svg>
+        Live Auctions
+      </a>
+      <a href="{{ url_for('auctions', ending='soon') }}" class="list-group-item list-group-item-action">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clock me-2" viewBox="0 0 16 16">
+          <path d="M8 3.5a.5.5 0 0 1 .5.5v3.25l2.5 1.5a.5.5 0 0 1-.5.865l-3-1.8A.5.5 0 0 1 7 7.5V4a.5.5 0 0 1 .5-.5z"/>
+          <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm0-1A7 7 0 1 1 8 1a7 7 0 0 1 0 14z"/>
+        </svg>
+        Ending Soon
+      </a>
+      <a href="{{ url_for('auctions', boat='1') }}" class="list-group-item list-group-item-action">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-tsunami me-2" viewBox="0 0 16 16">
+          <path d="M.5 13.5a.5.5 0 0 1 .5-.5c1.276 0 2.223-.21 2.947-.636.61-.357 1.074-.877 1.52-1.607l.12-.2c.451-.75.955-1.27 1.64-1.607.68-.336 1.53-.457 2.596-.457 1.07 0 1.92.12 2.602.457.686.337 1.19.857 1.64 1.607l.12.2c.446.73.909 1.25 1.52 1.607.724.425 1.67.636 2.946.636a.5.5 0 0 1 0 1c-1.405 0-2.52-.233-3.402-.744-.794-.464-1.388-1.106-1.906-1.96l-.118-.197c-.451-.75-.838-1.147-1.274-1.37-.433-.214-1.052-.349-2.228-.349-1.175 0-1.794.135-2.227.35-.436.222-.823.618-1.275 1.368l-.117.197c-.518.854-1.113 1.496-1.907 1.96-.882.51-1.997.744-3.402.744a.5.5 0 0 1-.5-.5Z"/>
+          <path d="M3.5 3a.5.5 0 0 0-1 0v1.086A1.5 1.5 0 0 0 1 5.5H.5a.5.5 0 0 0 0 1H1a.5.5 0 0 0 .5-.5c0-.276.224-.5.5-.5h1a.5.5 0 0 0 .5-.5V3Zm9 0a.5.5 0 0 0-1 0v1.086A1.5 1.5 0 0 0 11 5.5h-.5a.5.5 0 0 0 0 1h.5a.5.5 0 0 0 .5-.5c0-.276.224-.5.5-.5h1a.5.5 0 0 0 .5-.5V3Z"/>
+        </svg>
+        Boat Auctions
+      </a>
 
       <!-- Account Section -->
       <h6 class="list-group-item bg-light text-muted small fw-bold mb-0">ACCOUNT</h6>
