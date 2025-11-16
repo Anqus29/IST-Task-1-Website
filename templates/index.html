@@ -1194,9 +1194,17 @@
                 });
             }
 
-            // Hard cap total boats (independent of products)
-            const MAX_BOATS = 4;
-            for (let i = 0; i < MAX_BOATS; i++) addBoatForProduct();
+            // Dynamic number of boats based on popular products, but adjustable
+            // Vary boat count smoothly over time between 2 and 5
+            function getBoatCount(t) {
+                // t in seconds, cycle every 20 seconds
+                let phase = (t / 20) % 1;
+                // Sine wave between 2 and 5
+                return Math.round(2 + 1.5 + Math.sin(phase * 2 * Math.PI) * 1.5);
+            }
+
+            let boatCount = getBoatCount(performance.now() / 1000);
+            for (let i = 0; i < boatCount; i++) addBoatForProduct();
 
             // No product images used
 
