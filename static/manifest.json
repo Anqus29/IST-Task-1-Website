@@ -1,6 +1,6 @@
 {
-  "name": "SailBay - Boats & Sailing Gear",
-  "short_name": "SailBay",
+  "name": "The Sailer's Bay",
+  "short_name": "Sailer's Bay",
   "description": "Marketplace for boats, sailboats, and marine equipment",
   "start_url": "/",
   "display": "standalone",
@@ -9,13 +9,13 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/static/img/icon-192.png",
+      "src": "/static/img/logo.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/static/img/icon-512.png",
+      "src": "/static/img/logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

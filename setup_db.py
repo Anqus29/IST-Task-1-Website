@@ -9,12 +9,18 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "webstore.db")
 
 # Local images available
 LOCAL_IMAGES = [
-    '/static/img/product1.jpg',
-    '/static/img/product2.jpg',
-    '/static/img/product3.jpg',
-    '/static/img/product4.jpg',
-    '/static/img/product5.jpg',
-    '/static/img/product6.jpg'
+    '/static/img/sailing-yacht-20ft.jpg',
+    '/static/img/racing-dinghy-14ft.jpg',
+    '/static/img/luxury-cruiser-28ft.jpg',
+    '/static/img/catamaran-16ft.jpg',
+    '/static/img/wooden-sloop-vintage.jpg',
+    '/static/img/racing-yacht-performance.jpg',
+    '/static/img/foul-weather-jacket-red.jpg',
+    '/static/img/custom-rowboat.jpg',
+    '/static/img/sailing-gloves-premium.jpg',
+    '/static/img/teak-deck-panels.jpg',
+    '/static/img/sailing-boots-waterproof.jpg',
+    '/static/img/logo.png'
 ]
 
 # Categories for sailing/boating products
@@ -182,20 +188,19 @@ SAMPLE_USERS = [
 
 SAMPLE_PRODUCTS = [
     # seller_id, title, description, price, stock, category, image_url
-    # Existing products...
-    (1, "Classic 20ft Sailing Yacht", "Beautiful classic yacht with mahogany trim. Perfect for weekend coastal cruising. Recently serviced, ready to sail.", 15500.00, 1, "Sailboats", "/static/img/product1.jpg"),
-    (3, "14ft Racing Dinghy", "Competition-ready racing dinghy. Fast and responsive, ideal for club racing or training.", 3200.00, 2, "Sailboats", "/static/img/product2.jpg"),
-    (1, "Luxury 28ft Cruiser", "Spacious cruiser with full cabin amenities. Sleeps 4, galley, head, and navigation station.", 28900.00, 1, "Yachts", "/static/img/product4.jpg"),
-    (3, "16ft Catamaran", "Stable and fast catamaran perfect for beach sailing. Easy to trailer and launch.", 5800.00, 1, "Sailboats", "/static/img/product5.jpg"),
-    (1, "Vintage Wooden Sloop", "Restored 1960s wooden sloop. Beautiful lines, excellent condition. A real head-turner.", 12000.00, 1, "Sailboats", "/static/img/product1.jpg"),
-    (3, "Performance Racing Yacht", "High-performance racing yacht with carbon fiber mast. Competitive and well-maintained.", 35000.00, 1, "Yachts", "/static/img/product2.jpg"),
+    (1, "Classic 20ft Sailing Yacht", "Beautiful classic yacht with mahogany trim. Perfect for weekend coastal cruising. Recently serviced, ready to sail.", 15500.00, 1, "Sailboats", "/static/img/sailing-yacht-20ft.jpg"),
+    (3, "14ft Racing Dinghy", "Competition-ready racing dinghy. Fast and responsive, ideal for club racing or training.", 3200.00, 2, "Sailboats", "/static/img/racing-dinghy-14ft.jpg"),
+    (1, "Luxury 100ft Cruiser", "Spacious cruiser with full cabin amenities. Sleeps 4, galley, head, and navigation station.", 28900.00, 1, "Yachts", "/static/img/luxury-cruiser-28ft.jpg"),
+    (3, "16ft Catamaran", "Stable and fast catamaran perfect for beach sailing. Easy to trailer and launch.", 5800.00, 1, "Sailboats", "/static/img/catamaran-16ft.jpg"),
+    (1, "Vintage Wooden Sloop", "Restored 1960s wooden sloop. Beautiful lines, excellent condition. A real head-turner.", 12000.00, 1, "Sailboats", "/static/img/wooden-sloop-vintage.jpg"),
+    (3, "Performance Racing Yacht", "High-performance racing yacht with carbon fiber mast. Competitive and well-maintained.", 35000.00, 1, "Yachts", "/static/img/racing-yacht-performance.jpg"),
     # New products for new sellers
-    (4, "Marine Rain Jacket", "Waterproof jacket for sailing in rough weather. Breathable and lightweight.", 120.00, 15, "Clothing", "/static/img/product4.jpg"),
-    (6, "Custom Rowboat", "Hand-built rowboat, perfect for lakes and rivers. Durable and easy to row.", 2100.00, 2, "Dinghies", "/static/img/product6.jpg"),
-    (4, "Sailing Sunglasses", "Polarized sunglasses for glare reduction on the water.", 60.00, 20, "Accessories", "/static/img/product5.jpg"),
-    (6, "Boat Repair Kit", "Complete kit for emergency boat repairs. Includes epoxy, tape, and tools.", 75.00, 10, "Maintenance", "/static/img/product6.jpg"),
-    (4, "Deck Shoes", "Non-slip deck shoes for safe movement on wet surfaces.", 80.00, 18, "Apparel", "/static/img/product4.jpg"),
-    (6, "Bay Boatworks Hoodie", "Warm hoodie with Bay Boatworks logo. Perfect for chilly mornings.", 45.00, 25, "Apparel", "/static/img/product6.jpg"),
+    (4, "Marine Rain Jacket", "Waterproof jacket for sailing in rough weather. Breathable and lightweight.", 120.00, 15, "Clothing", "/static/img/foul-weather-jacket-red.jpg"),
+    (6, "Custom Rowboat", "Hand-built rowboat, perfect for lakes and rivers. Durable and easy to row.", 2100.00, 2, "Dinghies", "/static/img/custom-rowboat.jpg"),
+    (4, "Sailing Sunglasses", "Polarized sunglasses for glare reduction on the water.", 60.00, 20, "Accessories", "/static/img/sailing-gloves-premium.jpg"),
+    (6, "Boat Repair Kit", "Complete kit for emergency boat repairs. Includes epoxy, tape, and tools.", 75.00, 10, "Maintenance", "/static/img/teak-deck-panels.jpg"),
+    (4, "Deck Shoes", "Non-slip deck shoes for safe movement on wet surfaces.", 80.00, 18, "Apparel", "/static/img/sailing-boots-waterproof.jpg"),
+    (6, "Bay Boatworks Hoodie", "Warm hoodie with Bay Boatworks logo. Perfect for chilly mornings.", 45.00, 25, "Apparel", "/static/img/logo.png"),
 ]
 
 # Auction products with special fields - basic ones
@@ -351,41 +356,125 @@ def initialize_db():
     
     # Insert example reviews
     SAMPLE_REVIEWS = [
-        # (product_id, user_id, rating, title, body, is_approved)
         (1, 1, 5, 'Amazing quality!', 'This product exceeded my expectations. Highly recommended!', 1),
         (1, 2, 4, 'Good value', 'Works well, but shipping was slow.', 1),
         (2, 1, 3, 'Average', 'It does the job, but nothing special.', 1),
         (2, 3, 5, 'Perfect!', 'Exactly what I needed for my boat.', 1),
         (3, 2, 2, 'Not great', 'Had some issues with durability.', 1),
+        (4, 4, 5, 'Great jacket!', 'Kept me dry during a storm. Would buy again.', 1),
+        (5, 5, 4, 'Nice sunglasses', 'Reduces glare well, stylish too.', 1),
+        (6, 6, 5, 'Excellent repair kit', 'Saved my trip when my boat needed a quick fix.', 1),
+        (7, 4, 5, 'Comfortable shoes', 'Perfect for deck work, no slips.', 1),
+        (8, 6, 4, 'Warm hoodie', 'Very cozy and well made.', 1),
     ]
     c.executemany('''
         INSERT INTO reviews (product_id, user_id, rating, title, body, is_approved)
         VALUES (?, ?, ?, ?, ?, ?)
     ''', SAMPLE_REVIEWS)
+
+    # Insert sample orders
+    SAMPLE_ORDERS = [
+        # (buyer_id, buyer_name, buyer_email, shipping_address, status, refund_status, total)
+        (2, 'Bob', 'bob@example.com', '12 Example St, Springfield, SP 12345', 'completed', None, 15500.00),
+        (5, 'Eva', 'eva@example.com', '99 Tech Park, Suite 200, Metropolis, MT 54321', 'pending', None, 3200.00)
+    ]
+    c.executemany('''
+        INSERT INTO orders (buyer_id, buyer_name, buyer_email, shipping_address, status, refund_status, total)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', SAMPLE_ORDERS)
+
+    # Insert sample order items
+    SAMPLE_ORDER_ITEMS = [
+        # (order_id, product_id, quantity, unit_price)
+        (1, 1, 1, 15500.00),
+        (2, 2, 1, 3200.00)
+    ]
+    c.executemany('''
+        INSERT INTO order_items (order_id, product_id, quantity, unit_price)
+        VALUES (?, ?, ?, ?)
+    ''', SAMPLE_ORDER_ITEMS)
+
+    # Insert sample favorites
+    SAMPLE_FAVORITES = [
+        # (user_id, product_id)
+        (2, 1),
+        (5, 2),
+        (1, 3)
+    ]
+    c.executemany('''
+        INSERT INTO favorites (user_id, product_id)
+        VALUES (?, ?)
+    ''', SAMPLE_FAVORITES)
+
+    # Insert sample notifications
+    SAMPLE_NOTIFICATIONS = [
+        # (user_id, message, link, is_read)
+        (1, 'Welcome to Sailor\'s Bay!', None, 1),
+        (2, 'Your order has shipped.', '/order/1', 0)
+    ]
+    c.executemany('''
+        INSERT INTO notifications (user_id, message, link, is_read)
+        VALUES (?, ?, ?, ?)
+    ''', SAMPLE_NOTIFICATIONS)
+
+    # Insert sample product reports
+    SAMPLE_REPORTS = [
+        # (product_id, reporter_id, reason, status)
+        (2, 5, 'Suspected counterfeit', 'pending'),
+        (3, 2, 'Incorrect description', 'resolved')
+    ]
+    c.executemany('''
+        INSERT INTO product_reports (product_id, reporter_id, reason, status)
+        VALUES (?, ?, ?, ?)
+    ''', SAMPLE_REPORTS)
+
+    # Insert sample product views
+    SAMPLE_VIEWS = [
+        # (user_id, product_id)
+        (1, 1),
+        (2, 2),
+        (3, 3)
+    ]
+    for v in SAMPLE_VIEWS:
+        c.execute('''
+            INSERT INTO product_views (user_id, product_id, viewed_at)
+            VALUES (?, ?, ?)
+        ''', (v[0], v[1], datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+
     # Insert sample bids
+    SAMPLE_BIDS = [
+        # (product_id, user_id, bid_amount, is_winning)
+        (1, 2, 1600.00, 1),
+        (2, 5, 3500.00, 0)
+    ]
     for bid in SAMPLE_BIDS:
         product_id, user_id, bid_amount, is_winning = bid
         c.execute('''
             INSERT INTO bids (product_id, user_id, bid_amount, is_winning, created_at)
             VALUES (?, ?, ?, ?, ?)
         ''', (product_id, user_id, bid_amount, is_winning, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
-    
+
+    # Insert sample password reset tokens
+    SAMPLE_RESET_TOKENS = [
+        # (user_id, token, expires_at)
+        (1, 'sampletoken1', (datetime.now() + timedelta(hours=1)).strftime('%Y-%m-%d %H:%M:%S')),
+        (2, 'sampletoken2', (datetime.now() + timedelta(hours=2)).strftime('%Y-%m-%d %H:%M:%S'))
+    ]
+    for t in SAMPLE_RESET_TOKENS:
+        c.execute('''
+            INSERT INTO password_reset_tokens (user_id, token, expires_at)
+            VALUES (?, ?, ?)
+        ''', t)
+
     # Insert sample addresses (if any)
     c.executemany('''
         INSERT OR IGNORE INTO addresses (user_id, label, address_text) VALUES (?, ?, ?)
     ''', SAMPLE_ADDRESSES)
-    
+
     conn.commit()
     conn.close()
     print(f"✅ Database created at {DB_PATH}")
-    print("✅ Added 3 users (angus/admin, bob/buyer, charlie/seller)")
-    print(f"✅ Added {len(SAMPLE_PRODUCTS)} sailing products (boats, sails, rigging, safety gear, accessories)")
-    print(f"✅ Added {len(SAMPLE_AUCTIONS) + len(DETAILED_AUCTIONS)} auction products (sailing equipment)")
-    print(f"✅ Added {len(SAMPLE_BIDS)} sample bid(s)")
-    
-    # Update product images
-    update_product_images()
-    
+    print("✅ Added sample users, products, auctions, reviews, orders, bids, favorites, notifications, reports, views, and reset tokens.")
     print("🎯 Ready to test! Run: python app.py")
 
 def update_product_images():

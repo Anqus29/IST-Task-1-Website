@@ -299,7 +299,11 @@ def products():
     min_price = request.args.get('min_price', '')
     max_price = request.args.get('max_price', '')
     page = int(request.args.get('page', 1))
-    per_page = int(request.args.get('per_page', 12))
+    per_page_raw = request.args.get('per_page', 12)
+    try:
+        per_page = int(per_page_raw) if per_page_raw else 12
+    except ValueError:
+        per_page = 12
     
     # Build query with explicit column selection
     query = db.session.query(
@@ -363,6 +367,7 @@ def products():
                          min_price=min_price,
                          max_price=max_price,
                          page=page,
+                         per_page=per_page,
                          total_pages=total_pages,
                          total=total_products)
 

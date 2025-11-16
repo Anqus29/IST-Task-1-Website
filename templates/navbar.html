@@ -7,7 +7,10 @@
       </svg>
     </button>
 
-  <a class="navbar-brand" href="/">SailBay</a>
+  <a class="navbar-brand d-flex align-items-center" href="/">
+    <img src="/static/img/logo.png" alt="Logo" style="height:32px; width:auto; margin-right:8px;">
+    Sailor's Bay
+  </a>
 
     <!-- Mobile Login Button (visible only on mobile when not logged in) -->
     {% if not session.get('username') %}
@@ -31,12 +34,12 @@
     <div class="collapse navbar-collapse" id="mainNav">
       <!-- Search bar - visible on all screens -->
       <form class="d-flex mx-auto my-2 position-relative" action="{{ url_for('products') }}" method="get" style="max-width:600px; width:100%;">
-        <input id="searchInput" name="search" class="form-control form-control-sm me-2" type="search" placeholder="Search listings..." aria-label="Search" value="{{ request.args.get('search','') }}" autocomplete="off">
-        <button class="btn btn-sm btn-primary" type="submit">Search</button>
-        <!-- Autocomplete dropdown -->
-        <div id="searchAutocomplete" class="position-absolute bg-white border rounded shadow-lg" style="top: 100%; left: 0; right: 60px; max-height: 400px; overflow-y: auto; z-index: 1050; display: none;">
-          <!-- Results will be inserted here by JavaScript -->
-        </div>
+          <input id="searchInput" name="search" class="form-control form-control-sm me-2" type="search" placeholder="Search listings..." aria-label="Search" value="{{ request.args.get('search','') }}" autocomplete="off">
+          <button class="btn btn-sm btn-primary" type="submit">Search</button>
+          <!-- Autocomplete dropdown -->
+          <div id="searchAutocomplete" class="autocomplete-suggestions" style="top: 100%; left: 0; right: 60px; max-height: 400px; overflow-y: auto; z-index: 1050; display: none;">
+            <!-- Results will be inserted here by JavaScript -->
+          </div>
       </form>
 
       <!-- Desktop buttons - hidden on mobile -->
@@ -423,7 +426,7 @@
   <meta name="theme-color" content="#00a87e">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="SailBay">
+  <meta name="apple-mobile-web-app-title" content="Sailor's Bay">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/icon-192.png') }}">
   
   <!-- Mobile Responsive Styles -->
@@ -687,13 +690,13 @@
               }
 
               const html = results.map(product => `
-                <a href="${product.url}" class="d-flex align-items-center p-2 text-decoration-none border-bottom" style="color: var(--text-color);">
-                  <img src="${product.image_url}" alt="${product.title}" class="me-2" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+                <a href="${product.url}" class="autocomplete-suggestion d-flex align-items-center p-2 text-decoration-none border-bottom" style="color: var(--text-color); background: var(--card-bg);">
+                  <img src="${product.image_url}" alt="${product.title}" class="me-2" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; background: var(--card-bg);">
                   <div class="flex-grow-1">
-                    <div class="fw-bold">${product.title}</div>
-                    <small class="text-muted">${product.category || 'Uncategorized'}</small>
+                    <div class="fw-bold" style="color: var(--text-color);">${product.title}</div>
+                    <small class="text-muted" style="color: var(--text-color);">${product.category || 'Uncategorized'}</small>
                   </div>
-                  <div class="text-primary fw-bold">$${product.price.toFixed(2)}</div>
+                  <div class="text-primary fw-bold" style="color: var(--primary-color);">$${product.price.toFixed(2)}</div>
                 </a>
               `).join('');
 
