@@ -102,6 +102,24 @@
         </div>
 
         {% if not product.get('is_auction') %}
+        <!-- Stock Area -->
+        <div class="mb-3">
+          <strong>Stock Status:</strong>
+          {% if product['stock'] is not none %}
+            {% if product['stock'] <= 0 %}
+              <span class="badge stock-badge out">Out of stock</span>
+            {% elif product['stock'] < 5 %}
+              <span class="badge stock-badge low">Only {{ product['stock'] }} left</span>
+            {% else %}
+              <span class="text-success">In stock ({{ product['stock'] }} available)</span>
+            {% endif %}
+          {% else %}
+            <span class="text-muted">Stock info not available</span>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        {% if not product.get('is_auction') %}
         <!-- Show regular price for non-auction items only -->
         <p class="lead text-success h4">${{ '%.2f'|format(product['price']) }}</p>
         {% endif %}
