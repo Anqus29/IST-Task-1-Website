@@ -12,20 +12,7 @@
     Sailor's Bay
   </a>
 
-    <!-- Mobile Login Button (visible only on mobile when not logged in) -->
-    {% if not session.get('username') %}
-      <a href="{{ url_for('login') }}" class="btn btn-sm btn-primary d-lg-none ms-auto">Login</a>
-    {% endif %}
-
-    <!-- Mobile Cart Button (visible only on mobile when logged in) -->
-    {% if session.get('username') %}
-      <a href="{{ url_for('cart_view') }}" class="btn btn-outline-secondary position-relative d-lg-none ms-auto">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-cart" viewBox="0 0 16 16">
-          <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5zM3.102 4l1.313 7h8.17l1.313-7H3.102zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
-        </svg>
-        <span id="cart-count-mobile" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">{{ cart_item_count or 0 }}</span>
-      </a>
-    {% endif %}
+    <!-- ...existing code... -->
 
     <button class="navbar-toggler d-none" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
       <span class="navbar-toggler-icon"></span>
@@ -33,55 +20,59 @@
 
     <div class="collapse navbar-collapse" id="mainNav">
       <!-- Search bar - visible on all screens -->
-      <form class="d-flex mx-auto my-2 position-relative" action="{{ url_for('products') }}" method="get" style="max-width:600px; width:100%;">
-          <input id="searchInput" name="search" class="form-control form-control-sm me-2" type="search" placeholder="Search listings..." aria-label="Search" value="{{ request.args.get('search','') }}" autocomplete="off">
-          <button class="btn btn-sm btn-primary" type="submit">Search</button>
-          <!-- Autocomplete dropdown -->
-          <div id="searchAutocomplete" class="autocomplete-suggestions" style="top: 100%; left: 0; right: 60px; max-height: 400px; overflow-y: auto; z-index: 1050; display: none;">
-            <!-- Results will be inserted here by JavaScript -->
+        <div class="d-flex w-100 align-items-center gap-3">
+          <div class="flex-grow-1 d-flex justify-content-center">
+            <form class="d-flex position-relative" action="{{ url_for('products') }}" method="get" style="max-width:500px; width:100%;">
+              <input id="searchInput" name="search" class="form-control form-control-lg border border-primary rounded-pill px-4" type="search" placeholder="Search listings..." aria-label="Search" value="{{ request.args.get('search','') }}" autocomplete="off" style="box-shadow:0 0 0 2px var(--primary-color);">
+              <button class="btn btn-primary rounded-pill ms-2 px-4" type="submit">Search</button>
+              <!-- Autocomplete dropdown -->
+              <div id="searchAutocomplete" class="autocomplete-suggestions" style="top: 100%; left: 0; right: 60px; max-height: 400px; overflow-y: auto; z-index: 1050; display: none;">
+                <!-- Results will be inserted here by JavaScript -->
+              </div>
+            </form>
           </div>
-      </form>
+          <div class="d-flex align-items-center gap-2 ms-auto">
+            <!-- Dark Mode Toggle -->
+            <button id="darkModeToggle" class="btn btn-outline-secondary" title="Toggle Dark Mode">
+              <svg id="darkModeIcon" width="22" height="22" fill="currentColor" viewBox="0 0 16 16"><!-- icon injected by JS --></svg>
+            </button>
+            <!-- Cart Icon -->
+            <a href="{{ url_for('cart_view') }}" class="btn btn-outline-primary position-relative">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-cart" viewBox="0 0 16 16">
+                <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5zM3.102 4l1.313 7h8.17l1.313-7H3.102zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+              </svg>
+              <span id="cart-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">{{ cart_item_count or 0 }}</span>
+            </a>
+            <!-- Username or Login -->
+              {% if session.get('username') %}
+                <a href="{{ url_for('logout') }}" class="btn btn-primary btn-lg px-5 py-2 fw-bold shadow-sm" style="min-width: 160px; border-radius: 2rem; letter-spacing: 0.5px; font-size: 1.15rem; background: var(--primary-color); border: none;" title="Log out">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" class="bi bi-box-arrow-right me-2" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M6 3a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-2a.5.5 0 0 1 1 0v2h5V3H7v2a.5.5 0 0 1-1 0V3z"/>
+                    <path fill-rule="evenodd" d="M.146 8.354a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L1.707 7.5H9.5a.5.5 0 0 1 0 1H1.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3z"/>
+                  </svg>
+                  Log out
+                </a>
+              {% else %}
+                <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg px-5 py-2 fw-bold shadow-sm" style="min-width: 160px; border-radius: 2rem; letter-spacing: 0.5px; font-size: 1.15rem; background: var(--primary-color); border: none;" title="Login">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" class="bi bi-person me-2" viewBox="0 0 16 16">
+                    <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                    <path fill-rule="evenodd" d="M8 9a5 5 0 0 0-5 5v.5a.5.5 0 0 0 .5.5h9a.5.5 0 0 0 .5-.5V14a5 5 0 0 0-5-5z"/>
+                  </svg>
+                  Login
+                </a>
+              {% endif %}
+          </div>
+        </div>
 
       <!-- Desktop buttons - hidden on mobile -->
-      <div class="d-none d-lg-flex align-items-center gap-2">
-        <!-- Dark Mode Toggle -->
-        <button id="darkModeToggle" class="btn btn-outline-secondary" title="Toggle Dark Mode">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-moon-stars" viewBox="0 0 16 16">
-            <path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278zM4.858 1.311A7.269 7.269 0 0 0 1.025 7.71c0 4.02 3.279 7.276 7.319 7.276a7.316 7.316 0 0 0 5.205-2.162c-.337.042-.68.063-1.029.063-4.61 0-8.343-3.714-8.343-8.29 0-1.167.242-2.278.681-3.286z"/>
-            <path d="M10.794 3.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387a1.734 1.734 0 0 0-1.097 1.097l-.387 1.162a.217.217 0 0 1-.412 0l-.387-1.162A1.734 1.734 0 0 0 9.31 6.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387a1.734 1.734 0 0 0 1.097-1.097l.387-1.162zM13.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.156 1.156 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.156 1.156 0 0 0-.732-.732l-.774-.258a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732L13.863.1z"/>
-          </svg>
-        </button>
-        
-        {% if session.get('username') %}
-          <a href="{{ url_for('favorites') }}" class="btn btn-outline-secondary" title="Favorites">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-heart" viewBox="0 0 16 16">
-              <path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15z"/>
-            </svg>
-          </a>
-        {% endif %}
-        <a href="{{ url_for('cart_view') }}" class="btn btn-outline-secondary position-relative">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-cart" viewBox="0 0 16 16">
-            <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5zM3.102 4l1.313 7h8.17l1.313-7H3.102zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
-          </svg>
-          <span id="cart-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">{{ cart_item_count or 0 }}</span>
-        </a>
-
-        {% if session.get('username') %}
-          <div class="text-end">
-            <div>Logged in as <strong>{{ session['username'] }}</strong></div>
-            <a href="{{ url_for('logout') }}" class="small">Log out</a>
-          </div>
-        {% else %}
-          <a href="{{ url_for('login') }}" class="btn btn-sm btn-primary">Login</a>
-        {% endif %}
-      </div>
+      <!-- ...existing code... -->
     </div>
   </div>
 </nav>
 
 <!-- User Sidebar - Always visible -->
 <div class="offcanvas offcanvas-start" tabindex="-1" id="userSidebar" aria-labelledby="userSidebarLabel">
-  <div class="offcanvas-header bg-primary text-white">
+  <div class="offcanvas-header" style="background: var(--primary-color); color: var(--text-color);">
     <h5 class="offcanvas-title" id="userSidebarLabel">
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-person-circle me-2" viewBox="0 0 16 16">
         <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
@@ -96,7 +87,7 @@
     <!-- Logged in user menu -->
     <div class="list-group list-group-flush">
       <!-- Navigation Section -->
-      <h6 class="list-group-item bg-light text-muted small fw-bold mb-0">NAVIGATION</h6>
+      <h6 class="list-group-item" style="background: var(--card-bg); color: var(--text-color); font-size: small; font-weight: bold;">NAVIGATION</h6>
       
       <!-- Search Bar -->
       <div class="list-group-item">
@@ -141,7 +132,7 @@
       </a>
 
       <!-- Shopping Section -->
-      <h6 class="list-group-item bg-light text-muted small fw-bold mb-0">SHOPPING</h6>
+      <h6 class="list-group-item" style="background: var(--card-bg); color: var(--text-color); font-size: small; font-weight: bold;">SHOPPING</h6>
       <a href="{{ url_for('favorites') }}" class="list-group-item list-group-item-action">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-heart me-2" viewBox="0 0 16 16">
           <path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15z"/>
@@ -163,7 +154,7 @@
 
       {% if current_user_is_seller %}
       <!-- Seller Section -->
-      <h6 class="list-group-item bg-light text-muted small fw-bold mb-0">SELLING</h6>
+      <h6 class="list-group-item" style="background: var(--card-bg); color: var(--text-color); font-size: small; font-weight: bold;">SELLING</h6>
       <a href="{{ url_for('seller_dashboard') }}" class="list-group-item list-group-item-action">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-graph-up me-2" viewBox="0 0 16 16">
           <path fill-rule="evenodd" d="M0 0h1v15h15v1H0V0Zm14.817 3.113a.5.5 0 0 1 .07.704l-4.5 5.5a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61 4.15-5.073a.5.5 0 0 1 .704-.07Z"/>
@@ -187,7 +178,7 @@
 
       {% if current_user_is_admin %}
       <!-- Admin Section -->
-      <h6 class="list-group-item bg-light text-muted small fw-bold mb-0">ADMINISTRATION</h6>
+      <h6 class="list-group-item" style="background: var(--card-bg); color: var(--text-color); font-size: small; font-weight: bold;">ADMINISTRATION</h6>
       <a href="{{ url_for('admin_index') }}" class="list-group-item list-group-item-action">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-speedometer2 me-2" viewBox="0 0 16 16">
           <path d="M8 4a.5.5 0 0 1 .5.5V6a.5.5 0 0 1-1 0V4.5A.5.5 0 0 1 8 4zM3.732 5.732a.5.5 0 0 1 .707 0l.915.914a.5.5 0 1 1-.708.708l-.914-.915a.5.5 0 0 1 0-.707zM2 10a.5.5 0 0 1 .5-.5h1.586a.5.5 0 0 1 0 1H2.5A.5.5 0 0 1 2 10zm9.5 0a.5.5 0 0 1 .5-.5h1.5a.5.5 0 0 1 0 1H12a.5.5 0 0 1-.5-.5zm.754-4.246a.389.389 0 0 0-.527-.02L7.547 9.31a.91.91 0 1 0 1.302 1.258l3.434-4.297a.389.389 0 0 0-.029-.518z"/>
@@ -197,7 +188,7 @@
       </a>
       {% endif %}
       <!-- Auctions Section -->
-      <h6 class="list-group-item bg-light text-muted small fw-bold mb-0">AUCTIONS</h6>
+      <h6 class="list-group-item" style="background: var(--card-bg); color: var(--text-color); font-size: small; font-weight: bold;">AUCTIONS</h6>
       <a href="{{ url_for('auctions') }}" class="list-group-item list-group-item-action">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-hammer me-2" viewBox="0 0 16 16">
           <path d="M9.972 2.508a.5.5 0 0 0-.16-.556l-.178-.129a5.009 5.009 0 0 0-2.076-.783C6.215.862 4.504 1.229 2.84 3.133H1.786a.5.5 0 0 0-.354.147L.146 4.567a.5.5 0 0 0 0 .706l2.571 2.579a.5.5 0 0 0 .708 0l1.286-1.29a.5.5 0 0 0 .146-.353V5.57l8.387 8.873A.5.5 0 0 0 14 14.5l1.5-1.5a.5.5 0 0 0 .017-.689l-9.129-8.63c.747-.456 1.772-.839 3.112-.839a.5.5 0 0 0 .472-.334z"/>
@@ -224,7 +215,7 @@
       <a href="{{ url_for('settings') }}" class="list-group-item list-group-item-action">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear me-2" viewBox="0 0 16 16">
           <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
-          <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/>
+          <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a.873.873 0 0 1 1.255-.52l.094-.319z"/>
         </svg>
         Settings
       </a>
@@ -255,7 +246,7 @@
       </div>
 
       <!-- Navigation Section -->
-      <h6 class="list-group-item bg-light text-muted small fw-bold mb-0">NAVIGATION</h6>
+      <h6 class="list-group-item" style="background: var(--card-bg); color: var(--text-color); font-size: small; font-weight: bold;">NAVIGATION</h6>
       
       <!-- Search Bar -->
       <div class="list-group-item">
@@ -300,7 +291,7 @@
       </a>
 
       <!-- Shopping Section -->
-      <h6 class="list-group-item bg-light text-muted small fw-bold mb-0">SHOPPING</h6>
+      <h6 class="list-group-item" style="background: var(--card-bg); color: var(--text-color); font-size: small; font-weight: bold;">SHOPPING</h6>
       <a href="{{ url_for('login') }}" class="list-group-item list-group-item-action">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-heart me-2" viewBox="0 0 16 16">
           <path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15z"/>
@@ -321,7 +312,7 @@
       </a>
 
       <!-- Seller Section -->
-      <h6 class="list-group-item bg-light text-muted small fw-bold mb-0">SELLING</h6>
+      <h6 class="list-group-item" style="background: var(--card-bg); color: var(--text-color); font-size: small; font-weight: bold;">SELLING</h6>
       <a href="{{ url_for('login') }}" class="list-group-item list-group-item-action">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-graph-up me-2" viewBox="0 0 16 16">
           <path fill-rule="evenodd" d="M0 0h1v15h15v1H0V0Zm14.817 3.113a.5.5 0 0 1 .07.704l-4.5 5.5a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61 4.15-5.073a.5.5 0 0 1 .704-.07Z"/>
@@ -347,7 +338,7 @@
       <a href="{{ url_for('login') }}" class="list-group-item list-group-item-action">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear me-2" viewBox="0 0 16 16">
           <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
-          <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319z"/>
+          <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a.873.873 0 0 1 1.255-.52l.094-.319z"/>
         </svg>
         Settings
       </a>
@@ -580,148 +571,80 @@
           });
       });
     }
-    
-    // Dark Mode Toggle - Detect browser preference or use saved preference
-    (function() {
-      const darkModeToggle = document.getElementById('darkModeToggle');
-      const html = document.documentElement;
-      
-      // Check for saved preference first, otherwise use browser preference
-      const savedTheme = localStorage.getItem('theme');
-      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      
-      if (savedTheme === 'light') {
-        html.removeAttribute('data-theme');
-        updateIcon(false);
-      } else if (savedTheme === 'dark') {
-        html.setAttribute('data-theme', 'dark');
-        updateIcon(true);
-      } else {
-        // No saved preference - use browser/system preference
-        if (prefersDark) {
+  </script>
+
+<!-- Dark Mode Toggle - Detect browser preference or use saved preference -->
+<script>
+(function() {
+  const darkModeToggle = document.getElementById('darkModeToggle');
+  const html = document.documentElement;
+  // Check for saved preference first, otherwise use browser preference
+  const savedTheme = localStorage.getItem('theme');
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (savedTheme === 'light') {
+    html.removeAttribute('data-theme');
+    updateIcon(false);
+  } else if (savedTheme === 'dark') {
+    html.setAttribute('data-theme', 'dark');
+    updateIcon(true);
+  } else {
+    // No saved preference - use browser/system preference
+    if (prefersDark) {
+      html.setAttribute('data-theme', 'dark');
+      localStorage.setItem('theme', 'dark');
+      updateIcon(true);
+    } else {
+      html.removeAttribute('data-theme');
+      localStorage.setItem('theme', 'light');
+      updateIcon(false);
+    }
+  }
+  // Listen for system theme changes
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+      // Only auto-switch if user hasn't manually set a preference
+      const currentSaved = localStorage.getItem('theme');
+      if (!currentSaved) {
+        if (e.matches) {
           html.setAttribute('data-theme', 'dark');
-          localStorage.setItem('theme', 'dark');
           updateIcon(true);
         } else {
           html.removeAttribute('data-theme');
-          localStorage.setItem('theme', 'light');
           updateIcon(false);
         }
       }
-      
-      // Listen for system theme changes
-      if (window.matchMedia) {
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
-          // Only auto-switch if user hasn't manually set a preference
-          const currentSaved = localStorage.getItem('theme');
-          if (!currentSaved) {
-            if (e.matches) {
-              html.setAttribute('data-theme', 'dark');
-              updateIcon(true);
-            } else {
-              html.removeAttribute('data-theme');
-              updateIcon(false);
-            }
-          }
-        });
+    });
+  }
+  if (darkModeToggle) {
+    darkModeToggle.addEventListener('click', function() {
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      if (isDark) {
+        html.removeAttribute('data-theme');
+        localStorage.setItem('theme', 'light');
+        updateIcon(false);
+      } else {
+        html.setAttribute('data-theme', 'dark');
+        localStorage.setItem('theme', 'dark');
+        updateIcon(true);
       }
-      
-      if (darkModeToggle) {
-        darkModeToggle.addEventListener('click', function() {
-          const isDark = html.getAttribute('data-theme') === 'dark';
-          
-          if (isDark) {
-            html.removeAttribute('data-theme');
-            localStorage.setItem('theme', 'light');
-            updateIcon(false);
-          } else {
-            html.setAttribute('data-theme', 'dark');
-            localStorage.setItem('theme', 'dark');
-            updateIcon(true);
-          }
-        });
-      }
-      
-      function updateIcon(isDark) {
-        if (!darkModeToggle) return;
-        
-        if (isDark) {
-          darkModeToggle.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-sun" viewBox="0 0 16 16">
-              <path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708z"/>
-            </svg>
-          `;
-        } else {
-          darkModeToggle.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-moon-stars" viewBox="0 0 16 16">
-              <path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278zM4.858 1.311A7.269 7.269 0 0 0 1.025 7.71c0 4.02 3.279 7.276 7.319 7.276a7.316 7.316 0 0 0 5.205-2.162c-.337.042-.68.063-1.029.063-4.61 0-8.343-3.714-8.343-8.29 0-1.167.242-2.278.681-3.286z"/>
-              <path d="M10.794 3.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387a1.734 1.734 0 0 0-1.097 1.097l-.387 1.162a.217.217 0 0 1-.412 0l-.387-1.162A1.734 1.734 0 0 0 9.31 6.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387a1.734 1.734 0 0 0 1.097-1.097l.387-1.162zM13.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.156 1.156 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.156 1.156 0 0 0-.732-.732l-.774-.258a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732L13.863.1z"/>
-            </svg>
-          `;
-        }
-      }
-    })();
-
-    // Live Search Autocomplete
-    (function() {
-      const searchInput = document.getElementById('searchInput');
-      const autocompleteDiv = document.getElementById('searchAutocomplete');
-      let debounceTimer;
-
-      if (!searchInput || !autocompleteDiv) return;
-
-      searchInput.addEventListener('input', function() {
-        clearTimeout(debounceTimer);
-        const query = this.value.trim();
-
-        if (query.length < 2) {
-          autocompleteDiv.style.display = 'none';
-          return;
-        }
-
-        debounceTimer = setTimeout(() => {
-          fetch(`/api/search/autocomplete?q=${encodeURIComponent(query)}`)
-            .then(response => response.json())
-            .then(results => {
-              if (results.length === 0) {
-                autocompleteDiv.innerHTML = '<div class="p-3 text-muted">No results found</div>';
-                autocompleteDiv.style.display = 'block';
-                return;
-              }
-
-              const html = results.map(product => `
-                <a href="${product.url}" class="autocomplete-suggestion d-flex align-items-center p-2 text-decoration-none border-bottom" style="color: var(--text-color); background: var(--card-bg);">
-                  <img src="${product.image_url}" alt="${product.title}" class="me-2" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; background: var(--card-bg);">
-                  <div class="flex-grow-1">
-                    <div class="fw-bold" style="color: var(--text-color);">${product.title}</div>
-                    <small class="text-muted" style="color: var(--text-color);">${product.category || 'Uncategorized'}</small>
-                  </div>
-                  <div class="text-primary fw-bold" style="color: var(--primary-color);">$${product.price.toFixed(2)}</div>
-                </a>
-              `).join('');
-
-              autocompleteDiv.innerHTML = html;
-              autocompleteDiv.style.display = 'block';
-            })
-            .catch(error => {
-              console.error('Autocomplete error:', error);
-              autocompleteDiv.style.display = 'none';
-            });
-        }, 300);
-      });
-
-      // Close autocomplete when clicking outside
-      document.addEventListener('click', function(e) {
-        if (!searchInput.contains(e.target) && !autocompleteDiv.contains(e.target)) {
-          autocompleteDiv.style.display = 'none';
-        }
-      });
-
-      // Close autocomplete on form submit
-      searchInput.closest('form').addEventListener('submit', function() {
-        autocompleteDiv.style.display = 'none';
-      });
-    })();
-  </script>
-
-<!-- Dark mode removed: styles deleted -->
+    });
+  }
+  function updateIcon(isDark) {
+    if (!darkModeToggle) return;
+    if (isDark) {
+      darkModeToggle.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-sun" viewBox="0 0 16 16">
+          <path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708z"/>
+        </svg>
+      `;
+    } else {
+      darkModeToggle.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-moon-stars" viewBox="0 0 16 16">
+          <path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278zM4.858 1.311A7.269 7.269 0 0 0 1.025 7.71c0 4.02 3.279 7.276 7.319 7.276a7.316 7.316 0 0 0 5.205-2.162c-.337.042-.68.063-1.029.063-4.61 0-8.343-3.714-8.343-8.29 0-1.167.242-2.278.681-3.286z"/>
+          <path d="M10.794 3.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387a1.734 1.734 0 0 0-1.097 1.097l-.387 1.162a.217.217 0 0 1-.412 0l-.387-1.162A1.734 1.734 0 0 0 9.31 6.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387a1.734 1.734 0 0 0 1.097-1.097l.387-1.162zM13.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.156 1.156 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.156 1.156 0 0 0-.732-.732l-.774-.258a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732L13.863.1z"/>
+        </svg>
+      `;
+    }
+  }
+})();
+</script>

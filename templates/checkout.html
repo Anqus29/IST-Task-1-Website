@@ -13,6 +13,16 @@
       --accent-color: #FF6B35;
       --secondary-color: #f0f8ff;
     }
+
+    [data-theme="dark"] {
+      --primary-color: #4a90e2;
+      --ocean-blue: #00334d;
+      --accent-color: #FF6B35;
+      --secondary-color: #181c24;
+      --text-color: #e0e0e0;
+      --card-bg: #1b2838;
+      --border-color: #2d3748;
+    }
     /* simple suggestion box styling */
     .addr-suggestions { border: 1px solid #ddd; background: #fff; position: absolute; z-index: 1000; max-height: 200px; overflow:auto; width:100%; }
     .addr-suggestions button { width:100%; text-align:left; padding:8px 12px; border:0; background:transparent; }
@@ -137,4 +147,6 @@
 </script>
   {% include 'footer.html' %}
 </body>
+</body>
+<script src="/static/js/theme.js"></script>
 </html>

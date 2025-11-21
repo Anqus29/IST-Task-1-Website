@@ -1,4 +1,5 @@
-# Boat auctions route: show only auction products in boat-related categories
+# Main application entry point for e-commerce/PWA webstore
+# Imports core libraries, models, and initializes Flask app
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_file, make_response
 from functools import wraps
 from math import ceil
@@ -17,8 +18,9 @@ from models import db, User, Product, Order, OrderItem, Review, Favorite, Notifi
     PasswordResetToken, ProductReport, ProductView, Address, Bid
 
 
+# --- Flask app configuration: session, upload, and security settings ---
 app = Flask(__name__)
-app.secret_key = "yes_sir_i_did_change_the_secret_key"
+app.secret_key = "yes_sir_i_did_change_the_secret_key1234"
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # Auto-logout after 30 min
 # Prefer HTTPS when building absolute URLs (can override via env)
 app.config['PREFERRED_URL_SCHEME'] = os.environ.get('PREFERRED_URL_SCHEME', 'http')
@@ -26,7 +28,7 @@ app.config['PREFERRED_URL_SCHEME'] = os.environ.get('PREFERRED_URL_SCHEME', 'htt
 if os.environ.get('SERVER_NAME'):
     app.config['SERVER_NAME'] = os.environ['SERVER_NAME']
 
-# File upload configuration
+# --- File upload configuration: sets allowed image types and max file size ---
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
@@ -38,24 +40,24 @@ app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
-    """Check if uploaded file has an allowed extension"""
+    """Return True if the uploaded file has an allowed image extension (png, jpg, jpeg, gif, webp)."""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# SQLAlchemy configuration
+# --- SQLAlchemy database configuration: sets up SQLite URI and options ---
 DB_PATH = os.path.join(os.path.dirname(__file__), "webstore.db")
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = False  # Set to True for SQL debugging
 
-# Initialize SQLAlchemy
+# --- Initialize SQLAlchemy ORM ---
 db.init_app(app)
 
-# Create tables on first run
+# --- Create database tables if not present (first run) ---
 with app.app_context():
     db.create_all()
 
 def is_strong_password(pw: str) -> bool:
-    """Basic strong password policy: at least 8 chars, with lower, upper, digit, and special."""
+    """Check if password meets strong policy: 8+ chars, lower/upper/digit/special."""
     if not pw or len(pw) < 8:
         return False
     has_lower = any(c.islower() for c in pw)
@@ -65,7 +67,7 @@ def is_strong_password(pw: str) -> bool:
     return has_lower and has_upper and has_digit and has_special
 
 def ensure_cart():
-    """Get cart from session, falling back to cookie if session is empty"""
+    """Retrieve cart from session, or load from cookie if session cart is missing/empty."""
     if 'cart' not in session or not session['cart']:
         # Try to load from cookie
         cart_cookie = request.cookies.get('cart')
@@ -79,22 +81,20 @@ def ensure_cart():
     return session['cart']
 
 def save_cart_to_cookie(response, cart):
-    """Save cart to cookie for persistence"""
-    # Convert cart to JSON and save as cookie (expires in 30 days)
+    """Serialize cart as JSON and store in cookie for 30-day persistence."""
     cart_json = json.dumps(cart)
     response.set_cookie('cart', cart_json, max_age=30*24*60*60, httponly=True, samesite='Lax')
     return response
 
 def cart_total_items_and_amount(cart):
+    """Calculate total items and total amount in the cart."""
     total_items = 0
     total_amount = Decimal("0.00")
     if not cart:
         return total_items, total_amount
-    
     ids = list(cart.keys())
     products = Product.query.filter(Product.id.in_(ids)).all()
     product_prices = {str(p.id): Decimal(str(p.price)) for p in products}
-    
     for pid, qty in cart.items():
         total_items += qty
         price = product_prices.get(str(pid), Decimal("0.00"))
@@ -102,6 +102,7 @@ def cart_total_items_and_amount(cart):
     return total_items, total_amount
 
 def login_required(f):
+    """Decorator to require user login for protected routes."""
     @wraps(f)
     def decorated(*args, **kwargs):
         if 'user_id' not in session:
@@ -109,12 +110,9 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-
 @app.context_processor
 def inject_user_permissions():
-    """Inject helpers into templates: current_user_is_admin and current_user_is_seller
-    Also inject cart_item_count for navbar
-    """
+    """Inject user role flags (admin/seller) and cart item count into Jinja2 templates for navbar and permissions."""
     uid = session.get('user_id')
     is_admin_flag = False
     is_seller_flag = False
@@ -126,28 +124,23 @@ def inject_user_permissions():
                 is_admin_flag = True
             if user.is_seller:
                 is_seller_flag = True
-    
     # Get cart item count from session/cookie
     cart = ensure_cart()
     cart_item_count = sum(cart.values()) if cart else 0
-    
     return {
         'current_user_is_admin': is_admin_flag, 
         'current_user_is_seller': is_seller_flag,
         'cart_item_count': cart_item_count
     }
 
-
 def admin_required(f):
+    """Decorator to restrict admin routes to a specific username or users with is_admin flag."""
     @wraps(f)
     def decorated(*args, **kwargs):
-        # restrict admin area to a single user account (by username)
         uid = session.get('user_id')
         if not uid:
             return redirect(url_for('login', next=request.path))
-        
         user = User.query.get(uid)
-        # allow either the special username or any user with is_admin truthy
         allowed_admin_username = 'Briscoe'
         has_name_match = bool(user and user.username and user.username.strip().lower() == allowed_admin_username.strip().lower())
         has_admin_flag = bool(user and user.is_admin)
@@ -157,6 +150,8 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated
 
+
+# --- Home page route: fetches featured, popular, recently viewed products, and auction info for main landing page ---
 @app.route('/')
 def index():
     # Fetch featured products with seller info (exclude out of stock, limit to 9 for carousel)
@@ -229,10 +224,12 @@ def index():
         ending_soon_auctions=ending_soon_auctions
     )
 
+# --- About page route ---
 @app.route('/about')
 def about():
     return render_template('about.html')
 
+# --- Contact page route: handles contact form submission ---
 @app.route('/contact', methods=['GET', 'POST'])
 def contact():
     if request.method == 'POST':
@@ -245,7 +242,7 @@ def contact():
         return redirect(url_for('contact'))
     return render_template('contact.html')
 
-# Live Search Autocomplete API
+# --- Live Search Autocomplete API endpoint ---
 @app.route('/api/search/autocomplete')
 def search_autocomplete():
     query = request.args.get('q', '').strip()
@@ -278,6 +275,7 @@ def search_autocomplete():
     
     return jsonify(results)
 
+# --- Help, Privacy, and Terms static page routes ---
 @app.route('/help')
 def help():
     return render_template('help.html')
@@ -290,6 +288,7 @@ def privacy():
 def terms():
     return render_template('terms.html')
 
+# --- Products listing route: supports filtering, sorting, and pagination ---
 @app.route('/products')
 def products():
     search = request.args.get('search', '')
@@ -371,6 +370,7 @@ def products():
                          total_pages=total_pages,
                          total=total_products)
 
+# --- Product detail route: shows product info, reviews, auction data, and related products ---
 @app.route('/product/<int:product_id>')
 def product_detail(product_id):
     # Track product view
@@ -510,6 +510,7 @@ def product_detail(product_id):
                          is_auction_ended=is_auction_ended,
                          time_remaining=time_remaining_str)
 
+# --- Product review submission route: allows buyers to submit or update reviews ---
 @app.route('/product/<int:product_id>/review', methods=['POST'])
 @login_required
 def submit_review(product_id):
@@ -570,6 +571,7 @@ def submit_review(product_id):
     flash('Thanks for your review!')
     return redirect(url_for('product_detail', product_id=product_id))
 
+# --- Cart view route: displays cart items and recently viewed products ---
 @app.route('/cart')
 def cart_view():
     cart = ensure_cart()
@@ -602,6 +604,7 @@ def cart_view():
     response = save_cart_to_cookie(response, cart)
     return response
 
+# --- Cart add route: adds products to cart, respects stock limits ---
 @app.route('/cart/add', methods=['POST'])
 def cart_add():
     product_id = request.form.get('product_id')
@@ -661,12 +664,14 @@ def cart_add():
     response = save_cart_to_cookie(response, cart)
     return response
 
+# --- Cart summary API: returns total items and amount in cart ---
 @app.route('/cart/summary')
 def cart_summary():
     cart = ensure_cart()
     total_items, total_amount = cart_total_items_and_amount(cart)
     return jsonify({"total_items": total_items, "total_amount": float(total_amount)})
 
+# --- Cart update route: updates quantities, checks stock ---
 @app.route('/cart/update', methods=['POST'])
 def cart_update():
     cart = ensure_cart()
@@ -698,6 +703,7 @@ def cart_update():
     response = save_cart_to_cookie(response, cart)
     return response
 
+# --- Cart remove route: removes product from cart ---
 @app.route('/cart/remove/<int:product_id>', methods=['POST'])
 def cart_remove(product_id):
     cart = ensure_cart()
@@ -709,6 +715,7 @@ def cart_remove(product_id):
     response = save_cart_to_cookie(response, cart)
     return response
 
+# --- User registration route: handles new user sign-up ---
 @app.route('/register', methods=['GET','POST'])
 def register():
     if request.method == 'POST':
@@ -742,6 +749,7 @@ def register():
         return redirect(next_url)
     return render_template('register.html')
 
+# --- User login route: handles authentication and cart merging ---
 @app.route('/login', methods=['GET','POST'])
 def login():
     if request.method == 'POST':
@@ -781,6 +789,7 @@ def login():
         return response
     return render_template('login.html')
 
+# --- User logout route: clears session ---
 @app.route('/logout')
 def logout():
     session.pop('user_id', None)
@@ -788,6 +797,7 @@ def logout():
     flash("Logged out.")
     return redirect(url_for('index'))
 
+# --- Checkout route: processes orders and payment ---
 @app.route('/checkout', methods=['GET', 'POST'])
 @login_required
 def checkout():
@@ -903,7 +913,7 @@ def checkout():
     pre_email = user.email if user else ''
     return render_template('checkout.html', items=items, total_amount=total, pre_name=pre_name, pre_email=pre_email)
 
-# new route: order confirmation
+# --- Order confirmation route: displays order details after purchase ---
 @app.route('/order/<int:order_id>')
 def order_confirmation(order_id):
     order = Order.query.get(order_id)
@@ -919,6 +929,7 @@ def order_confirmation(order_id):
     
     return render_template('order_confirmation.html', order=order, items=items)
 
+# --- Address suggestions API: returns saved addresses for user ---
 @app.route('/addresses')
 def address_suggestions():
     """Return saved addresses for the logged-in user that match ?query=..."""
@@ -934,6 +945,7 @@ def address_suggestions():
     addresses = query.order_by(desc(Address.created_at)).limit(8).all()
     return jsonify([{"id": a.id, "label": a.label, "address": a.address_text} for a in addresses])
 
+# --- Seller profile route: shows seller info and their products ---
 @app.route('/seller/<int:seller_id>')
 def seller_profile(seller_id):
     seller = User.query.get(seller_id)
@@ -943,7 +955,7 @@ def seller_profile(seller_id):
 
     return render_template('seller_profile.html', seller=seller, products=products)
 
-# Serve favicon automatically from available assets
+# --- Favicon route: serves favicon from available static assets ---
 @app.route('/favicon.ico')
 def favicon():
     """Serve a favicon even if favicon.ico isn't present.
@@ -966,6 +978,7 @@ def favicon():
     # If nothing exists, return 204 No Content to avoid 404 noise
     return ('', 204)
 
+# --- Post ad route: allows sellers to create new product or auction listings ---
 @app.route('/post-ad', methods=['GET', 'POST'])
 @login_required
 def post_ad():
@@ -1072,6 +1085,7 @@ def post_ad():
     
     return render_template('post_ad.html')
 
+# --- Admin utility: convert boat listings to auctions ---
 @app.route('/admin/convert-boats', methods=['POST'])
 @login_required
 def admin_convert_boats():
@@ -1102,6 +1116,7 @@ def admin_convert_boats():
         flash('No boat listings required conversion.', 'info')
     return redirect(url_for('auctions'))
 
+# --- My listings route: shows products posted by current seller ---
 @app.route('/my-listings')
 @login_required
 def my_listings():
@@ -1117,6 +1132,7 @@ def my_listings():
     
     return render_template('my_listings.html', products=products)
 
+# --- User settings route: displays and updates profile and password ---
 @app.route('/settings')
 @login_required
 def settings():
@@ -1178,6 +1194,7 @@ def update_settings():
     flash("Profile updated successfully!", "success")
     return redirect(url_for('settings'))
 
+# --- User profile route: shows own profile and seller stats ---
 @app.route('/profile')
 @login_required
 def profile():
@@ -1190,7 +1207,7 @@ def profile():
     if user.is_seller:
         products = Product.query.filter_by(seller_id=user_id).all()
         total_products = len(products)
-        active_products = len([p for p in products if p.status == 'available'])
+        active_products = len([p for p in products if hasattr(p, 'status') and p.status == 'available'])
         
         stats = {
             'total_products': total_products,
@@ -1201,7 +1218,7 @@ def profile():
     
     return render_template('profile.html', user=user, stats=stats)
 
-# Admin dashboard
+# --- Admin dashboard route: shows site stats ---
 @app.route('/admin')
 @admin_required
 def admin_index():
@@ -1215,6 +1232,7 @@ def admin_index():
     }
     return render_template('admin/dashboard.html', stats=stats)
 
+# --- Admin reviews management routes ---
 @app.route('/admin/reviews')
 @admin_required
 def admin_reviews():
@@ -1269,7 +1287,7 @@ def admin_review_reject(review_id):
         flash('Review rejected and deleted.')
     return redirect(url_for('admin_reviews'))
 
-
+# --- Admin orders management routes ---
 @app.route('/admin/orders')
 @admin_required
 def admin_orders():
@@ -1292,7 +1310,7 @@ def admin_order_detail(order_id):
     items = [dict(row._mapping) for row in items_raw]
     return render_template('admin/order_detail.html', order=order, items=items)
 
-# Product management
+# --- Admin product management routes ---
 @app.route('/admin/products')
 @admin_required
 def admin_products():
@@ -1409,7 +1427,7 @@ def admin_product_delete(product_id):
     flash("Product deleted.")
     return redirect(url_for('admin_products'))
 
-# User management
+# --- Admin user management routes ---
 @app.route('/admin/users')
 @admin_required
 def admin_users():
@@ -1494,9 +1512,7 @@ def admin_user_delete(user_id):
     flash("User deleted.")
     return redirect(url_for('admin_users'))
 
-# ===== NEW FEATURES =====
-
-# Wishlist/Favorites
+# --- Wishlist/Favorites routes ---
 @app.route('/favorites')
 @login_required
 def favorites():
@@ -1535,7 +1551,7 @@ def remove_favorite(product_id):
     flash("Removed from favorites.")
     return redirect(request.referrer or url_for('favorites'))
 
-# Password Reset
+# --- Password Reset routes ---
 @app.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
@@ -1594,7 +1610,7 @@ def reset_password(token):
     
     return render_template('reset_password.html', token=token)
 
-# Notifications
+# --- Notification routes ---
 @app.route('/notifications')
 @login_required
 def notifications():
@@ -1621,7 +1637,7 @@ def create_notification(user_id, message, link=None):
     db.session.add(notif)
     db.session.commit()
 
-# Report Product
+# --- Product reporting route ---
 @app.route('/product/<int:product_id>/report', methods=['POST'])
 @login_required
 def report_product(product_id):
@@ -1637,7 +1653,7 @@ def report_product(product_id):
     flash("Thank you for your report. We'll review it shortly.", "success")
     return redirect(url_for('product_detail', product_id=product_id))
 
-# Seller Reply to Review
+# --- Seller reply to product review route ---
 @app.route('/review/<int:review_id>/reply', methods=['POST'])
 @login_required
 def reply_to_review(review_id):
@@ -1663,7 +1679,7 @@ def reply_to_review(review_id):
     flash("Response added to review.", "success")
     return redirect(request.referrer or url_for('index'))
 
-# Seller Dashboard with Analytics
+# --- Seller dashboard with analytics and stats ---
 @app.route('/seller/dashboard')
 @login_required
 def seller_dashboard():
@@ -1730,7 +1746,7 @@ def seller_dashboard():
                          recent_orders=recent_orders,
                          top_by_category=top_by_category)
 
-# Recently Viewed Products
+# --- Recently viewed products tracking and route ---
 def track_product_view(product_id):
     """Helper to track when a product is viewed."""
     user_id = session.get('user_id')
@@ -1985,6 +2001,30 @@ def end_auction(product_id):
     
     flash("Auction ended successfully.", "success")
     return redirect(url_for('product_detail', product_id=product_id))
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
+
+# --- Delete product route: allows seller or admin to delete a product ---
+@app.route('/delete_product/<int:product_id>', methods=['POST'])
+@login_required
+def delete_product(product_id):
+    product = Product.query.get_or_404(product_id)
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    # Only allow seller or admin to delete
+    if not user or (product.seller_id != user_id and not user.is_admin):
+        flash('You do not have permission to delete this product.')
+        return redirect(url_for('my_listings'))
+    try:
+        db.session.delete(product)
+        db.session.commit()
+        flash('Product deleted successfully.')
+    except Exception as e:
+        db.session.rollback()
+        flash('Error deleting product.')
+    return redirect(url_for('my_listings'))
 
 if __name__ == '__main__':
     app.run(debug=True)

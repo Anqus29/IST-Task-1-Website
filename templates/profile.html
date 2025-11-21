@@ -188,6 +188,29 @@
 
   {% include 'footer.html' %}
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var darkModeToggle = document.getElementById('darkModeToggle');
+      var html = document.documentElement;
+      var savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        html.setAttribute('data-theme', savedTheme);
+      }
+      if (darkModeToggle) {
+        darkModeToggle.addEventListener('click', function() {
+          var isDark = html.getAttribute('data-theme') === 'dark';
+          if (isDark) {
+            html.setAttribute('data-theme', 'light');
+            localStorage.setItem('theme', 'light');
+          } else {
+            html.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+          }
+        });
+      }
+    });
+    </script>
+  </body>
+  </html>

@@ -108,7 +108,7 @@
             font-size: 1.25rem;
             font-weight: bold;
         }
-
+/* ...existing CSS code... */
         .date-posted {
             color: var(--text-color);
             opacity: 0.6;
@@ -262,11 +262,23 @@
 <body>
     {% include 'navbar.html' %}
 
-    <!-- Search Bar and Categories Section -->
-    <div class="search-bar">
+    <!-- Currency Selector - Improved Top Bar -->
+    <div class="container-fluid py-2 border-bottom" style="background: var(--card-bg); position: sticky; top: 0; z-index: 1030; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
         <div class="container">
-            <div class="row mb-3">
-                <div class="col-12">
+            <div class="row align-items-center">
+                <div class="col-md-6 col-12 mb-2 mb-md-0">
+                    <span class="fw-bold" style="font-size: 1.2rem; color: var(--primary-color);">Browse Listings</span>
+                </div>
+                <!-- ...existing code... -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Bar and Filters Section (Sticky) -->
+    <div class="search-bar" style="position: sticky; top: 0; z-index: 1030;">
+        <div class="container">
+            <div class="row mb-3 align-items-center">
+                <div class="col-lg-8 col-md-7 col-12 mb-2 mb-md-0">
                     <form action="{{ url_for('products') }}" method="get">
                         <div class="input-group">
                             <input name="search" class="form-control" type="search" placeholder="Search listings..." aria-label="Search" value="{{ request.args.get('search','') }}">
@@ -279,56 +291,69 @@
                         </div>
                     </form>
                 </div>
+                <div class="col-lg-4 col-md-5 col-12 d-flex justify-content-md-end justify-content-start align-items-center gap-2">
+                    <!-- Currency Selector -->
+                    <label for="currencySelect" class="me-2 mb-0 fw-bold">Currency:</label>
+                    <select id="currencySelect" class="form-select form-select-sm w-auto">
+                        <option value="USD">USD ($)</option>
+                        <option value="EUR">EUR (€)</option>
+                        <option value="GBP">GBP (£)</option>
+                        <option value="AUD" selected>AUD (A$)</option>
+                        <option value="JPY">JPY (¥)</option>
+                    </select>
+                    <!-- Add filter controls here if needed -->
+                </div>
             </div>
-            
+            <div class="row">
+                <div class="col-12">
+                    <form method="get" action="{{ url_for('products') }}" class="row g-2 align-items-end" id="filter-form">
+                        <div class="col-12 col-md-2">
+                            <label for="min_price" class="form-label">Min Price</label>
+                            <input type="number" step="0.01" min="0" name="min_price" id="min_price" class="form-control form-control-sm" value="{{ min_price }}">
+                        </div>
+                        <div class="col-12 col-md-2">
+                            <label for="max_price" class="form-label">Max Price</label>
+                            <input type="number" step="0.01" min="0" name="max_price" id="max_price" class="form-control form-control-sm" value="{{ max_price }}">
+                        </div>
+                        <div class="col-12 col-md-2">
+                            <label for="min_rating" class="form-label">Min Rating</label>
+                            <select name="min_rating" id="min_rating" class="form-select form-select-sm">
+                                <option value="">Any</option>
+                                {% for r in range(1,6) %}
+                                    <option value="{{ r }}" {% if min_rating == r %}selected{% endif %}>{{ r }}+</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-2">
+                            <label for="availability" class="form-label">Availability</label>
+                            <select name="availability" id="availability" class="form-select form-select-sm">
+                                <option value="">All</option>
+                                <option value="in_stock" {% if availability == 'in_stock' %}selected{% endif %}>In Stock</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-2">
+                            <label for="per_page" class="form-label">Products per page</label>
+                            <select name="per_page" id="per_page" class="form-select form-select-sm" onchange="document.getElementById('filter-form').submit();">
+                                {% for n in [8, 12, 16, 20, 24, 32, 48] %}
+                                    <option value="{{ n }}" {% if per_page == n %}selected{% endif %}>{{ n }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+                        </div>
+                        <input type="hidden" name="search" value="{{ search }}">
+                        <input type="hidden" name="sort" value="{{ sort }}">
+                        <input type="hidden" name="category" value="{{ category }}">
+                        <input type="hidden" name="condition" value="{{ condition }}">
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 
     <div class="container">
         <div class="row">
-            <div class="col-12 mb-3">
-                <form method="get" action="{{ url_for('products') }}" class="row g-2 align-items-end" id="filter-form">
-                    <div class="col-12 col-md-2">
-                        <label for="min_price" class="form-label">Min Price</label>
-                        <input type="number" step="0.01" min="0" name="min_price" id="min_price" class="form-control form-control-sm" value="{{ min_price }}">
-                    </div>
-                    <div class="col-12 col-md-2">
-                        <label for="max_price" class="form-label">Max Price</label>
-                        <input type="number" step="0.01" min="0" name="max_price" id="max_price" class="form-control form-control-sm" value="{{ max_price }}">
-                    </div>
-                    <div class="col-12 col-md-2">
-                        <label for="min_rating" class="form-label">Min Rating</label>
-                        <select name="min_rating" id="min_rating" class="form-select form-select-sm">
-                            <option value="">Any</option>
-                            {% for r in range(1,6) %}
-                                <option value="{{ r }}" {% if min_rating == r %}selected{% endif %}>{{ r }}+</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-12 col-md-2">
-                        <label for="availability" class="form-label">Availability</label>
-                        <select name="availability" id="availability" class="form-select form-select-sm">
-                            <option value="">All</option>
-                            <option value="in_stock" {% if availability == 'in_stock' %}selected{% endif %}>In Stock</option>
-                        </select>
-                    </div>
-                    <div class="col-12 col-md-2">
-                        <label for="per_page" class="form-label">Products per page</label>
-                        <select name="per_page" id="per_page" class="form-select form-select-sm" onchange="document.getElementById('filter-form').submit();">
-                            {% for n in [8, 12, 16, 20, 24, 32, 48] %}
-                                <option value="{{ n }}" {% if per_page == n %}selected{% endif %}>{{ n }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-12 col-md-2">
-                        <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
-                    </div>
-                    <input type="hidden" name="search" value="{{ search }}">
-                    <input type="hidden" name="sort" value="{{ sort }}">
-                    <input type="hidden" name="category" value="{{ category }}">
-                    <input type="hidden" name="condition" value="{{ condition }}">
-                </form>
-            </div>
             <!-- Sidebar (desktop) -->
             <aside class="col-md-3 d-none d-md-block mb-3">
                 <div class="list-group mb-3">
@@ -338,13 +363,26 @@
                     {% endfor %}
                 </div>
                 <div class="list-group">
-                    <h6 class="list-group-item bg-light text-muted small fw-bold mb-0">AUCTIONS</h6>
+                    <h6 class="list-group-item" style="background: var(--card-bg); color: var(--text-color); font-size: small; font-weight: bold;">AUCTIONS</h6>
                     <a href="{{ url_for('auctions') }}" class="list-group-item list-group-item-action">Live Auctions</a>
                     <a href="{{ url_for('auctions', ending='soon') }}" class="list-group-item list-group-item-action">Ending Soon</a>
                     <a href="{{ url_for('auctions', boat='1') }}" class="list-group-item list-group-item-action">Boat Auctions</a>
                 </div>
+                <!-- Settings Currency Selector -->
+                <div class="mt-4 p-3 border rounded bg-white" style="background: var(--card-bg);">
+                    <h6 class="fw-bold mb-2" style="color: var(--primary-color);">Settings</h6>
+                    <div class="mb-2">
+                        <label for="currencySelectSettings" class="fw-bold mb-1" style="display:block;">Currency:</label>
+                        <select id="currencySelectSettings" class="form-select form-select-sm w-100">
+                            <option value="USD">USD ($)</option>
+                            <option value="EUR">EUR (€)</option>
+                            <option value="GBP">GBP (£)</option>
+                            <option value="AUD" selected>AUD (A$)</option>
+                            <option value="JPY">JPY (¥)</option>
+                        </select>
+                    </div>
+                </div>
             </aside>
-
             <!-- Main content -->
             <section class="col-12 col-md-9">
                 <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-3 g-4">
@@ -352,8 +390,8 @@
                         {% for p in products %}
                             <div class="col">
                                 <a href="{{ url_for('product_detail', product_id=p['id']) }}" class="text-decoration-none">
-                                    <div class="listing-card h-100 shadow-sm border rounded-3 p-2 d-flex flex-column">
-                                        <div class="image-box mb-2" style="width:100%; height:180px; overflow:hidden; display:flex; align-items:center; justify-content:center; background:#fff;">
+                                    <div class="listing-card h-100 shadow-sm border rounded-3 p-2 d-flex flex-column bg-white" style="transition:box-shadow 0.2s;">
+                                        <div class="image-box mb-2" style="width:100%; height:180px; overflow:hidden; display:flex; align-items:center; justify-content:center; background:#f8f9fa; border-radius:8px; border:1px solid var(--border-color);">
                                             {% if 'image_url' in p.keys() and p['image_url'] %}
                                                 {% set img = p['image_url'] %}
                                                 {% if img.startswith('http://') or img.startswith('https://') or img.startswith('/') %}
@@ -365,7 +403,7 @@
                                                 <img src="https://via.placeholder.com/220x180/e9ecef/6c757d?text={{ p['title'][:20] }}" alt="{{ p['title'] }}" style="max-width:100%; max-height:180px; object-fit:cover; object-position:center;">
                                             {% endif %}
                                         </div>
-                                        <h5 class="product-title mb-1" title="{{ p['title'] }}">{{ p['title'] }}</h5>
+                                        <h5 class="product-title mb-1 text-truncate" title="{{ p['title'] }}" style="font-size:1.1rem; font-weight:600; color:var(--primary-color);">{{ p['title'] }}</h5>
                                         {% if p['business_name'] %}
                                             <div class="small mb-1" style="color: var(--text-color); font-weight: 500;">{{ p['business_name'] }}</div>
                                         {% endif %}
@@ -384,7 +422,7 @@
                                             {% endif %}
                                         </div>
                                         <div class="mb-1">
-                                            <span class="price">${{ '%.2f'|format(p['price']) }}</span>
+                                            <span class="price" style="font-size:1.15rem; color:var(--accent-color); font-weight:bold;">${{ '%.2f'|format(p['price']) }}</span>
                                             {% if p['rating'] %}
                                                 <span class="ms-2">
                                                     {% for i in range(1, 6) %}
@@ -473,5 +511,77 @@
 
     {% include 'footer.html' %}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+    <script>
+    // Currency selector cookie logic
+    function setCookie(name, value, days) {
+        var expires = "";
+        if (days) {
+            var date = new Date();
+            date.setTime(date.getTime() + (days*24*60*60*1000));
+            expires = "; expires=" + date.toUTCString();
+        }
+        document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+    }
+    function getCookie(name) {
+        var nameEQ = name + "=";
+        var ca = document.cookie.split(';');
+        for(var i=0;i < ca.length;i++) {
+            var c = ca[i];
+            while (c.charAt(0)==' ') c = c.substring(1,c.length);
+            if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+        }
+        return null;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var currencySelect = document.getElementById('currencySelect');
+        var currencySelectSettings = document.getElementById('currencySelectSettings');
+        var savedCurrency = getCookie('currency');
+        if (savedCurrency) {
+            currencySelect.value = savedCurrency;
+            if (currencySelectSettings) currencySelectSettings.value = savedCurrency;
+        } else {
+            currencySelect.value = 'AUD'; // Default to AUD
+            if (currencySelectSettings) currencySelectSettings.value = 'AUD';
+            setCookie('currency', 'AUD', 365);
+        }
+        currencySelect.addEventListener('change', function() {
+            setCookie('currency', currencySelect.value, 365);
+            if (currencySelectSettings) currencySelectSettings.value = currencySelect.value;
+        });
+        if (currencySelectSettings) {
+            currencySelectSettings.addEventListener('change', function() {
+                setCookie('currency', currencySelectSettings.value, 365);
+                currencySelect.value = currencySelectSettings.value;
+            });
+        }
+    });
+    </script>
+    <script>
+    // Unified dark mode logic (no flicker)
+    (function() {
+        var html = document.documentElement;
+        var savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            html.setAttribute('data-theme', 'dark');
+        } else {
+            html.setAttribute('data-theme', 'light');
+        }
+    })();
+    document.addEventListener('DOMContentLoaded', function() {
+        var darkModeToggle = document.getElementById('darkModeToggle');
+        var html = document.documentElement;
+        if (darkModeToggle) {
+            darkModeToggle.addEventListener('click', function() {
+                var isDark = html.getAttribute('data-theme') === 'dark';
+                if (isDark) {
+                    html.setAttribute('data-theme', 'light');
+                    localStorage.setItem('theme', 'light');
+                } else {
+                    html.setAttribute('data-theme', 'dark');
+                    localStorage.setItem('theme', 'dark');
+                }
+            });
+        }
+    });
+    </script>

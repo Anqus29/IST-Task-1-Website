@@ -31,17 +31,18 @@
             transition: background-color 0.3s ease, color 0.3s ease;
         }
         .container {
-            max-width: 1000px;
-            margin: 20px auto;
-            padding: 20px;
+            width: 100%;
+            max-width: 1400px;
+                margin: 0 auto;
+                padding: 0 24px;
         }
         h1, h2 {
             color: var(--text-color);
         }
         .section {
             background: var(--card-bg);
-            padding: 20px;
-            margin-bottom: 30px;
+            padding: 10px 16px;
+            margin-bottom: 24px;
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             border: 1px solid var(--border-color);
@@ -129,85 +130,98 @@
             opacity: 0.7;
         }
     </style>
+
 </head>
 <body>
     {% include 'navbar.html' %}
-    
-    <div class="container">
-        <h1>My Bids</h1>
 
-        {% if winning_bids %}
-        <div class="section">
-            <h2>🏆 Currently Winning</h2>
-            {% for bid, product in winning_bids %}
-            <div class="bid-item">
-                {% if product.image_url %}
-                <img src="{{ product.image_url }}" alt="{{ product.title }}" class="bid-image">
-                {% else %}
-                <div class="bid-image" style="display: flex; align-items: center; justify-content: center; color: #999;">No Image</div>
-                {% endif %}
-                <div class="bid-info">
-                    <div class="bid-title">{{ product.title }}</div>
-                    <div class="bid-details">
-                        Your bid: ${{ "%.2f"|format(bid.bid_amount) }} | 
-                        Placed: {{ bid.created_at.strftime('%b %d, %I:%M %p') }}
-                    </div>
-                    <div class="bid-details">
-                        {% if product.auction_end > now %}
-                        Ends: {{ product.auction_end.strftime('%b %d, %I:%M %p') }}
-                        {% else %}
-                        <span style="color: #4caf50; font-weight: bold;">Auction Ended - You Won! 🎉</span>
-                        {% endif %}
-                    </div>
-                    <a href="{{ url_for('product_detail', product_id=product.id) }}" class="view-link">View Auction</a>
-                </div>
-                <div class="bid-status status-winning">WINNING</div>
-            </div>
-            {% endfor %}
+    <div class="container position-relative" style="z-index: 1;">
+        <div class="rounded-4 mb-4 px-4 py-4" style="background: linear-gradient(120deg, var(--primary-color) 0%, var(--ocean-blue) 100%); opacity: 0.18;">
+            <h1 class="mb-0" style="position: relative; z-index: 2; color: var(--primary-color);">My Bids</h1>
         </div>
-        {% endif %}
+        <h1 class="mb-4">My Bids</h1>
 
-        <div class="section">
-            <h2>All My Bids</h2>
-            {% if bids %}
-            {% for bid, product in bids %}
-            <div class="bid-item">
-                {% if product.image_url %}
-                <img src="{{ product.image_url }}" alt="{{ product.title }}" class="bid-image">
-                {% else %}
-                <div class="bid-image" style="display: flex; align-items: center; justify-content: center; color: #999;">No Image</div>
-                {% endif %}
-                <div class="bid-info">
-                    <div class="bid-title">{{ product.title }}</div>
-                    <div class="bid-details">
-                        Your bid: ${{ "%.2f"|format(bid.bid_amount) }} | 
-                        Current bid: ${{ "%.2f"|format(product.current_bid or product.starting_bid) }}
+        <div class="row">
+            <div class="col-12">
+                {% if winning_bids %}
+                <div class="section mb-4">
+                    <h2>🏆 Currently Winning</h2>
+                    {% for bid, product in winning_bids %}
+                    <div class="bid-item">
+                        {% if product.image_url %}
+                        <img src="{{ product.image_url }}" alt="{{ product.title }}" class="bid-image">
+                        {% else %}
+                        <div class="bid-image d-flex align-items-center justify-content-center text-muted">No Image</div>
+                        {% endif %}
+                        <div class="bid-info">
+                            <div class="bid-title">{{ product.title }}</div>
+                            <div class="bid-details">
+                                Your bid: ${{ "%.2f"|format(bid.bid_amount) }}<br>
+                                Placed: {{ bid.created_at.strftime('%b %d, %I:%M %p') }}
+                            </div>
+                            <div class="bid-details">
+                                {% if product.auction_end > now %}
+                                Ends: {{ product.auction_end.strftime('%b %d, %I:%M %p') }}
+                                {% else %}
+                                <span style="color: #4caf50; font-weight: bold;">Auction Ended - You Won! 🎉</span>
+                                {% endif %}
+                            </div>
+                            <a href="{{ url_for('product_detail', product_id=product.id) }}" class="view-link mt-2">View Auction</a>
+                        </div>
+                        <div class="bid-status status-winning">WINNING</div>
                     </div>
-                    <div class="bid-details">
-                        Placed: {{ bid.created_at.strftime('%b %d, %I:%M %p') }}
-                    </div>
-                    <a href="{{ url_for('product_detail', product_id=product.id) }}" class="view-link">View Auction</a>
+                    {% endfor %}
                 </div>
-                {% if bid.is_winning %}
-                <div class="bid-status status-winning">WINNING</div>
-                {% elif product.auction_end and product.auction_end <= now %}
-                <div class="bid-status status-lost">LOST</div>
-                {% else %}
-                <div class="bid-status status-outbid">OUTBID</div>
                 {% endif %}
+                <div class="section mb-4">
+                    <div class="card shadow-sm border-0" style="background: var(--card-bg); border-radius: 12px;">
+                        <div class="card-header bg-transparent border-bottom-0 pb-0">
+                            <h2 class="fw-bold mb-0" style="color: var(--primary-color);">All My Bids</h2>
+                        </div>
+                        <div class="card-body pt-3">
+                            {% if bids %}
+                                {% for bid, product in bids %}
+                                <div class="bid-item mb-3 pb-3" style="border-bottom: 1px solid var(--border-color);">
+                                    {% if product.image_url %}
+                                        <img src="{{ product.image_url }}" alt="{{ product.title }}" class="bid-image">
+                                    {% else %}
+                                        <div class="bid-image d-flex align-items-center justify-content-center text-muted">No Image</div>
+                                    {% endif %}
+                                    <div class="bid-info">
+                                        <div class="bid-title">{{ product.title }}</div>
+                                        <div class="bid-details">
+                                            Your bid: ${{ "%.2f"|format(bid.bid_amount) }}<br>
+                                            Current bid: ${{ "%.2f"|format(product.current_bid or product.starting_bid) }}<br>
+                                            Placed: {{ bid.created_at.strftime('%b %d, %I:%M %p') }}
+                                        </div>
+                                        <a href="{{ url_for('product_detail', product_id=product.id) }}" class="view-link mt-2">View Auction</a>
+                                    </div>
+                                    {% if bid.is_winning %}
+                                        <div class="bid-status status-winning">WINNING</div>
+                                    {% elif product.auction_end and product.auction_end <= now %}
+                                        <div class="bid-status status-lost">LOST</div>
+                                    {% else %}
+                                        <div class="bid-status status-outbid">OUTBID</div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="no-bids">
+                                    <h3>No Bids Yet</h3>
+                                    <p>You haven't placed any bids yet.</p>
+                                    <a href="{{ url_for('auctions') }}" class="view-link">Browse Auctions</a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
             </div>
-            {% endfor %}
-            {% else %}
-            <div class="no-bids">
-                <h3>No Bids Yet</h3>
-                <p>You haven't placed any bids yet.</p>
-                <a href="{{ url_for('auctions') }}" class="view-link">Browse Auctions</a>
-            </div>
-            {% endif %}
         </div>
     </div>
 
     {% include 'footer.html' %}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+</body>
+<script src="/static/js/theme.js"></script>
 </html>

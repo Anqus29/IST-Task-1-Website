@@ -7,6 +7,16 @@
   <title>Boat Auctions - Sailor's Bay Marketplace</title>
   <style>
     :root { --primary-color:#1e5a8e; --ocean-blue:#006994; --accent-color:#FF6B35; --secondary-color:#f0f8ff; }
+
+    [data-theme="dark"] {
+      --primary-color: #4a90e2;
+      --ocean-blue: #00334d;
+      --accent-color: #FF6B35;
+      --secondary-color: #181c24;
+      --text-color: #e0e0e0;
+      --card-bg: #1b2838;
+      --border-color: #2d3748;
+    }
     body { font-family:Arial,sans-serif; margin:0; background:var(--secondary-color); }
     .container { max-width:1200px; margin:80px auto 20px; padding:20px; }
     h1 { margin-bottom:30px; }
@@ -81,4 +91,6 @@
   </div>
   {% include 'footer.html' %}
 </body>
+</body>
+<script src="/static/js/theme.js"></script>
 </html>

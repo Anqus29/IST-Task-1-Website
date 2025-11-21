@@ -68,7 +68,7 @@
         .hero-section {
             position: relative;
             color: white;
-            padding: 80px 0;
+            padding: 80px 0 0 0;
             margin-bottom: 40px;
             border-bottom: 3px solid var(--accent-color);
             overflow: hidden;
@@ -96,11 +96,12 @@
         }
         .weather-widget h4,
         .weather-widget .fw-bold {
-            color: #ffffff !important;
+            color: var(--text-color) !important;
             font-weight: 600 !important;
         }
         .weather-widget .text-muted {
-            color: #f0f0f0 !important;
+            color: var(--text-color) !important;
+            opacity: 0.7;
             font-weight: 500 !important;
         }
         .weather-widget svg {
@@ -362,6 +363,34 @@
 </head>
 <body>
     {% include 'navbar.html' %}
+    <script>
+    // Robust dark mode logic for index page
+    (function() {
+        var html = document.documentElement;
+        var savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            html.setAttribute('data-theme', 'dark');
+        } else {
+            html.setAttribute('data-theme', 'light');
+        }
+    })();
+    document.addEventListener('DOMContentLoaded', function() {
+        var darkModeToggle = document.getElementById('darkModeToggle');
+        var html = document.documentElement;
+        if (darkModeToggle) {
+            darkModeToggle.addEventListener('click', function() {
+                var isDark = html.getAttribute('data-theme') === 'dark';
+                if (isDark) {
+                    html.setAttribute('data-theme', 'light');
+                    localStorage.setItem('theme', 'light');
+                } else {
+                    html.setAttribute('data-theme', 'dark');
+                    localStorage.setItem('theme', 'dark');
+                }
+            });
+        }
+    });
+    </script>
 
     <div class="hero-section">
         <canvas id="oceanCanvas" aria-hidden="true"></canvas>

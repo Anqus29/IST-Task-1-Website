@@ -35,7 +35,7 @@
           <label class="form-label">Image filename / URL</label>
           <input name="image_url" class="form-control" value="{{ product['image_url'] if product else '' }}" placeholder="myphoto.jpg or /static/img/myphoto.jpg">
         </div>
-        {% if product and 'image_url' in product and product['image_url'] %}
+        {% if product and product.image_url %}
           <div class="mt-2">
             <img id="product-image-edit" src="{{ product['image_url'] }}" alt="product image" style="max-width:220px; max-height:160px; display:block; margin:auto;">
             <div class="mt-2">
@@ -68,14 +68,14 @@
         <div class="col-md-3 mb-3">
           <label class="form-label">Category</label>
           <select name="category" class="form-select">
-            <option value="Other" {% if product and ('category' not in product.keys() or product['category'] == 'Other') %}selected{% endif %}>Other</option>
-            <option value="Electronics" {% if product and 'category' in product.keys() and product['category'] == 'Electronics' %}selected{% endif %}>Electronics</option>
-            <option value="Antiques" {% if product and 'category' in product.keys() and product['category'] == 'Antiques' %}selected{% endif %}>Antiques</option>
-            <option value="Furniture" {% if product and 'category' in product.keys() and product['category'] == 'Furniture' %}selected{% endif %}>Furniture</option>
-            <option value="Clothing" {% if product and 'category' in product.keys() and product['category'] == 'Clothing' %}selected{% endif %}>Clothing</option>
-            <option value="Books" {% if product and 'category' in product.keys() and product['category'] == 'Books' %}selected{% endif %}>Books</option>
-            <option value="Sports" {% if product and 'category' in product.keys() and product['category'] == 'Sports' %}selected{% endif %}>Sports</option>
-            <option value="Toys" {% if product and 'category' in product.keys() and product['category'] == 'Toys' %}selected{% endif %}>Toys</option>
+            <option value="Other" {% if product and (not product.category or product.category == 'Other') %}selected{% endif %}>Other</option>
+            <option value="Electronics" {% if product and product.category == 'Electronics' %}selected{% endif %}>Electronics</option>
+            <option value="Antiques" {% if product and product.category == 'Antiques' %}selected{% endif %}>Antiques</option>
+            <option value="Furniture" {% if product and product.category == 'Furniture' %}selected{% endif %}>Furniture</option>
+            <option value="Clothing" {% if product and product.category == 'Clothing' %}selected{% endif %}>Clothing</option>
+            <option value="Books" {% if product and product.category == 'Books' %}selected{% endif %}>Books</option>
+            <option value="Sports" {% if product and product.category == 'Sports' %}selected{% endif %}>Sports</option>
+            <option value="Toys" {% if product and product.category == 'Toys' %}selected{% endif %}>Toys</option>
           </select>
         </div>
         <div class="col-md-3 mb-3">

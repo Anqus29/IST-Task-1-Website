@@ -9,6 +9,10 @@ const STATIC_ASSETS = [
   '/static/manifest.json',
   '/products',
   '/about',
+  '/webide',
+  '/webide/',
+  '/webide/index.html',
+  // Add more webide static assets as needed
   'https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js'
 ];
