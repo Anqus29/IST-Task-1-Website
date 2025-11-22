@@ -12,33 +12,42 @@
       --ocean-blue: #006994;
       --accent-color: #FF6B35;
       --secondary-color: #f0f8ff;
+      --card-bg: #fff;
+      --text-color: #2c3e50;
+      --border-color: #e9ecef;
+    }
+    [data-theme="dark"] {
+      --primary-color: #4a90e2;
+      --ocean-blue: #00334d;
+      --accent-color: #FF6B35;
+      --secondary-color: #181c24;
+      --card-bg: #1b2838;
+      --text-color: #e0e0e0;
+      --border-color: #2d3748;
+    }
+    body {
+      background: var(--secondary-color);
+      color: var(--text-color);
     }
     .dashboard-card {
       border-radius: 10px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       transition: transform 0.2s;
-      background: #fff;
-      color: #2c3e50;
+      background: var(--card-bg);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
     }
     .dashboard-card:hover {
       transform: translateY(-3px);
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
     .stat-card {
-      background: linear-gradient(135deg, #1e5a8e 0%, #006994 100%);
-      color: white;
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--ocean-blue) 100%);
+      color: #fff;
       border: none;
     }
     .stat-card.revenue {
-      background: linear-gradient(135deg, #FF6B35 0%, #ff8c5a 100%);
-    }
-    .category-card {
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-    .category-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 6px 20px rgba(13, 110, 253, 0.3);
+      background: linear-gradient(135deg, var(--accent-color) 0%, #ff8c5a 100%);
     }
     .stat-card.products {
       background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
@@ -46,39 +55,86 @@
     .stat-card.orders {
       background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
     }
+    .category-card {
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: var(--card-bg);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+    }
+    .category-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 20px rgba(13, 110, 253, 0.3);
+    }
     .stat-number {
       font-size: 2.5rem;
       font-weight: bold;
+      color: var(--text-color);
     }
     .stat-label {
-        --secondary-color: #f0f8ff;
-        --card-bg: #fff;
-        --text-color: #2c3e50;
-        --border-color: #e9ecef;
-      }
-      [data-theme="dark"] {
-        --primary-color: #4a90e2;
-        --ocean-blue: #00334d;
-        --accent-color: #FF6B35;
-        --secondary-color: #181c24;
-        --card-bg: #1b2838;
-        --text-color: #e0e0e0;
-        --border-color: #2d3748;
-      }
-      opacity: 0.9;
+      color: var(--text-color);
     }
     .sidebar-fixed {
       position: sticky;
-      background: #fff;
-      color: #2c3e50;
+      background: var(--card-bg);
+      color: var(--text-color);
       top: 20px;
       max-height: calc(100vh - 40px);
       overflow-y: auto;
+      border: 1px solid var(--border-color);
     }
     .quick-action-btn {
       width: 100%;
       margin-bottom: 10px;
       text-align: left;
+      color: var(--text-color) !important;
+      background: var(--card-bg) !important;
+      border: 1px solid var(--border-color) !important;
+    }
+    .quick-action-btn svg {
+      color: var(--text-color);
+      fill: var(--text-color);
+    }
+    .card-header.bg-light {
+      background: var(--card-bg) !important;
+      color: var(--text-color) !important;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .card-header.bg-primary {
+      background: var(--primary-color) !important;
+      color: #fff !important;
+    }
+    .list-group-item {
+      background: var(--card-bg) !important;
+      color: var(--text-color) !important;
+      border: 1px solid var(--border-color) !important;
+    }
+    .badge.bg-info, .badge.bg-success, .badge.bg-warning, .badge.bg-danger, .badge.bg-secondary {
+      color: #fff !important;
+    }
+    .table {
+      color: var(--text-color);
+      background: var(--card-bg);
+    }
+    .table th, .table td {
+      border-color: var(--border-color) !important;
+    }
+    .table-hover tbody tr:hover {
+      background: rgba(100,100,100,0.08);
+    }
+    .text-muted {
+      color: #888 !important;
+    }
+    .text-success {
+      color: #43e97b !important;
+    }
+    .fw-bold {
+      font-weight: bold;
+    }
+    /* SVG icon color for theme */
+    svg {
+      color: var(--text-color);
+      fill: var(--text-color);
     }
 
     /* Mobile Responsive Styles */
@@ -136,6 +192,7 @@
   </style>
 </head>
   <body>
+  <script src="/static/js/theme.js"></script>
   {% include 'navbar.html' %}
 
   <div class="container-fluid my-4">
