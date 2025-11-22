@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="{{ 'dark' if request.cookies.get('theme') == 'dark' else 'light' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,7 +12,18 @@
             --ocean-blue: #006994;
             --accent-color: #FF6B35;
             --secondary-color: #f0f8ff;
+            --card-bg: #fff;
             --text-color: #2c3e50;
+            --border-color: #e9ecef;
+        }
+        [data-theme="dark"] {
+            --primary-color: #4a90e2;
+            --ocean-blue: #00334d;
+            --accent-color: #FF6B35;
+            --secondary-color: #181c24;
+            --card-bg: #1b2838;
+            --text-color: #e0e0e0;
+            --border-color: #2d3748;
         }
 
         body {
@@ -21,18 +32,19 @@
         }
 
         .post-ad-section {
-            background: white;
+            background: var(--card-bg);
             padding: 40px 0;
             margin-bottom: 30px;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid var(--border-color);
         }
 
         .form-card {
-            background: white;
+            background: var(--card-bg);
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             padding: 30px;
             margin-bottom: 20px;
+            color: var(--text-color);
         }
 
         .btn-primary {

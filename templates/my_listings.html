@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="{{ 'dark' if request.cookies.get('theme') == 'dark' else 'light' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,7 +12,18 @@
             --ocean-blue: #006994;
             --accent-color: #FF6B35;
             --secondary-color: #f0f8ff;
+            --card-bg: #fff;
             --text-color: #2c3e50;
+            --border-color: #e9ecef;
+        }
+        [data-theme="dark"] {
+            --primary-color: #4a90e2;
+            --ocean-blue: #00334d;
+            --accent-color: #FF6B35;
+            --secondary-color: #181c24;
+            --card-bg: #1b2838;
+            --text-color: #e0e0e0;
+            --border-color: #2d3748;
         }
 
         body {
@@ -21,7 +32,7 @@
         }
 
         .listing-card {
-            background: white;
+            background: var(--card-bg);
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             margin-bottom: 20px;
@@ -120,12 +131,12 @@
                                 {% if p.image_url %}
                                     {% set img = p.image_url %}
                                     {% if img.startswith('http://') or img.startswith('https://') or img.startswith('/') %}
-                                        <img src="{{ img }}" alt="{{ p.title }}" style="max-height:160px; width:100%; object-fit:contain; background:#fff; border:1px solid #eee; padding:6px; border-radius:5px;">
+                                        <img src="{{ img }}" alt="{{ p.title }}" style="max-height:160px; width:100%; object-fit:contain; background: var(--card-bg); border:none; padding:6px; border-radius:5px;">
                                     {% else %}
-                                        <img src="{{ url_for('static', filename='img/' ~ img) }}" alt="{{ p.title }}" style="max-height:160px; width:100%; object-fit:contain; background:#fff; border:1px solid #eee; padding:6px; border-radius:5px;">
+                                        <img src="{{ url_for('static', filename='img/' ~ img) }}" alt="{{ p.title }}" style="max-height:160px; width:100%; object-fit:contain; background: var(--card-bg); border:none; padding:6px; border-radius:5px;">
                                     {% endif %}
                                 {% else %}
-                                    <img src="https://via.placeholder.com/300x200/e9ecef/6c757d?text={{ p.title[:20] }}" alt="{{ p.title }}" style="max-height:160px; width:100%; object-fit:contain; border:1px solid #eee; padding:6px; border-radius:5px;">
+                                    <img src="https://via.placeholder.com/300x200/e9ecef/6c757d?text={{ p.title[:20] }}" alt="{{ p.title }}" style="max-height:160px; width:100%; object-fit:contain; border:none; padding:6px; border-radius:5px;">
                                 {% endif %}
                             </div>
 
@@ -140,13 +151,13 @@
 
                             <div class="description-text">
                                 {% if p.description %}
-                                    <p class="text-muted small mb-3">{{ (p.description or '')[:100] }}{% if (p.description or '')|length > 100 %}...{% endif %}</p>
+                                    <p class="small mb-3" style="color: var(--text-color);">{{ (p.description or '')[:100] }}{% if (p.description or '')|length > 100 %}...{% endif %}</p>
                                 {% else %}
-                                    <p class="text-muted small mb-3">&nbsp;</p>
+                                    <p class="small mb-3" style="color: var(--text-color);">&nbsp;</p>
                                 {% endif %}
                             </div>
 
-                            <div class="text-muted small mb-3">
+                            <div class="small mb-3" style="color: var(--text-color);">
                                 {% if p.created_at %}
                                     Posted: {{ p.created_at.strftime('%Y-%m-%d') }}
                                 {% endif %}
@@ -172,9 +183,9 @@
             </div>
         {% endif %}
 
-        <div class="mt-4 p-4 bg-white rounded shadow-sm">
-            <h5>Seller Tips</h5>
-            <ul class="text-muted mb-0">
+        <div class="mt-4 p-4 rounded shadow-sm" style="background: var(--card-bg); color: var(--text-color);">
+            <h5 style="color: var(--text-color);">Seller Tips</h5>
+            <ul class="mb-0" style="color: var(--text-color);">
                 <li>Keep your product descriptions detailed and accurate</li>
                 <li>Use high-quality images to attract more buyers</li>
                 <li>Update your stock levels regularly</li>

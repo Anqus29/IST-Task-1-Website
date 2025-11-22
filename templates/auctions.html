@@ -13,16 +13,6 @@
             --accent-color: #FF6B35;
             --secondary-color: #f0f8ff;
         }
-
-        [data-theme="dark"] {
-            --primary-color: #4a90e2;
-            --ocean-blue: #00334d;
-            --accent-color: #FF6B35;
-            --secondary-color: #181c24;
-            --text-color: #e0e0e0;
-            --card-bg: #1b2838;
-            --border-color: #2d3748;
-        }
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -172,47 +162,14 @@
             <noscript><button class="btn btn-sm btn-primary">Apply</button></noscript>
         </form>
 
-        {% if ending_soon %}
         <div class="auction-section">
-            <h2>⏰ Ending Soon (Within 24 Hours)</h2>
-            <div class="auction-grid">
-                {% for auction in ending_soon %}
-                <div class="auction-card">
-                    <span class="auction-badge ending-soon-badge">ENDING SOON</span>
-                    {% if auction.image_url %}
-                    <img src="{{ auction.image_url }}" alt="{{ auction.title }}" class="auction-image">
-                    {% else %}
-                    <div class="auction-image" style="display: flex; align-items: center; justify-content: center; color: #999;">
-                        No Image
-                    </div>
-                    {% endif %}
-                    <div class="auction-info">
-                        <div class="auction-title">{{ auction.title }}</div>
-                        <div class="auction-price">
-                            ${{ "%.2f"|format(auction.current_bid or auction.starting_bid) }}
-                        </div>
-                        <div class="auction-timer urgent" id="timer-{{ auction.id }}">
-                            Ends: {{ auction.auction_end.strftime('%b %d, %I:%M %p') }}
-                        </div>
-                        <div class="auction-details">
-                            <span>{{ auction.bids|length }} bid(s)</span>
-                            <span>{{ auction.category }}</span>
-                        </div>
-                        <a href="{{ url_for('product_detail', product_id=auction.id) }}" class="view-btn">View & Bid</a>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-
-        <div class="auction-section">
-            <h2>All Active Auctions</h2>
+            <h2>All Auctions</h2>
             {% if active_auctions %}
             <div class="auction-grid">
                 {% for auction in active_auctions %}
                 <div class="auction-card">
-                    <span class="auction-badge">LIVE AUCTION</span>
+                    {% set is_ending_soon = auction.auction_end <= (now + timedelta(hours=24)) %}
+                    <span class="auction-badge {% if is_ending_soon %}ending-soon-badge{% endif %}">{% if is_ending_soon %}ENDING SOON{% else %}LIVE AUCTION{% endif %}</span>
                     {% if auction.image_url %}
                     <img src="{{ auction.image_url }}" alt="{{ auction.title }}" class="auction-image">
                     {% else %}
@@ -225,7 +182,7 @@
                         <div class="auction-price">
                             ${{ "%.2f"|format(auction.current_bid or auction.starting_bid) }}
                         </div>
-                        <div class="auction-timer" id="timer-{{ auction.id }}">
+                        <div class="auction-timer {% if is_ending_soon %}urgent{% endif %}" id="timer-{{ auction.id }}">
                             Ends: {{ auction.auction_end.strftime('%b %d, %I:%M %p') }}
                         </div>
                         <div class="auction-details">
@@ -248,6 +205,4 @@
 
     {% include 'footer.html' %}
 </body>
-</body>
-<script src="/static/js/theme.js"></script>
 </html>

@@ -1846,7 +1846,7 @@ def auctions():
 # Filtered boat auctions (only sailing/boat categories)
 @app.route('/boat-auctions')
 def boat_auctions():
-    # Redirect legacy boat auctions route to unified auctions view with boat filter
+    # Merge: always redirect to unified auctions view with boat filter
     return redirect(url_for('auctions', boat='1'))
 
 @app.route('/product/<int:product_id>/bid', methods=['POST'])

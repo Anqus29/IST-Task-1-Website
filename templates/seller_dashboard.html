@@ -17,18 +17,20 @@
       border-radius: 10px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       transition: transform 0.2s;
+      background: #fff;
+      color: #2c3e50;
     }
     .dashboard-card:hover {
       transform: translateY(-3px);
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
     .stat-card {
-      background: linear-gradient(135deg, var(--primary-color) 0%, var(--ocean-blue) 100%);
+      background: linear-gradient(135deg, #1e5a8e 0%, #006994 100%);
       color: white;
       border: none;
     }
     .stat-card.revenue {
-      background: linear-gradient(135deg, var(--accent-color) 0%, #ff8c5a 100%);
+      background: linear-gradient(135deg, #FF6B35 0%, #ff8c5a 100%);
     }
     .category-card {
       cursor: pointer;
@@ -49,11 +51,26 @@
       font-weight: bold;
     }
     .stat-label {
-      font-size: 0.9rem;
+        --secondary-color: #f0f8ff;
+        --card-bg: #fff;
+        --text-color: #2c3e50;
+        --border-color: #e9ecef;
+      }
+      [data-theme="dark"] {
+        --primary-color: #4a90e2;
+        --ocean-blue: #00334d;
+        --accent-color: #FF6B35;
+        --secondary-color: #181c24;
+        --card-bg: #1b2838;
+        --text-color: #e0e0e0;
+        --border-color: #2d3748;
+      }
       opacity: 0.9;
     }
     .sidebar-fixed {
       position: sticky;
+      background: #fff;
+      color: #2c3e50;
       top: 20px;
       max-height: calc(100vh - 40px);
       overflow-y: auto;
@@ -70,13 +87,14 @@
         position: static;
         margin-bottom: 20px;
       }
-
+        color: var(--text-color) !important;
       .stat-number {
         font-size: 2rem;
       }
 
       .stat-label {
         font-size: 0.85rem;
+    <script src="/static/js/theme.js"></script>
       }
 
       .table {
@@ -117,7 +135,7 @@
     }
   </style>
 </head>
-<body>
+  <body>
   {% include 'navbar.html' %}
 
   <div class="container-fluid my-4">
@@ -363,15 +381,18 @@
                           {% if 'image_url' in item.keys() and item['image_url'] %}
                             {% set img = item['image_url'] %}
                             {% if img.startswith('http://') or img.startswith('https://') or img.startswith('/') %}
-                              <img src="{{ img }}" class="card-img-top" alt="{{ item['title'] }}" style="height: 180px; object-fit: contain; background: #f8f9fa; padding: 10px;">
+                              <img src="{{ img }}" class="card-img-top" alt="{{ item['title'] }}" style="height: 180px; object-fit: contain; background: var(--card-bg); padding: 10px;">
                             {% else %}
-                              <img src="{{ url_for('static', filename='img/' ~ img) }}" class="card-img-top" alt="{{ item['title'] }}" style="height: 180px; object-fit: contain; background: #f8f9fa; padding: 10px;">
+                              <img src="{{ url_for('static', filename='img/' ~ img) }}" class="card-img-top" alt="{{ item['title'] }}" style="height: 180px; object-fit: contain; background: var(--card-bg); padding: 10px;">
                             {% endif %}
                           {% else %}
                             <img src="https://via.placeholder.com/300x180?text=No+Image" class="card-img-top" alt="No image" style="height: 180px; object-fit: contain;">
                           {% endif %}
                           <div class="card-body">
                             <h6 class="card-title">{{ item['title'] }}</h6>
+                            {% if item['description'] %}
+                              <!-- description -->
+                            {% endif %}
                             <div class="d-flex justify-content-between align-items-center mb-2">
                               <span class="text-success fw-bold">${{ '%.2f'|format(item['price']) }}</span>
                               <span class="badge bg-info">{{ item['total_sold'] }} sold</span>

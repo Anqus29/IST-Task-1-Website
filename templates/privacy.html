@@ -7,7 +7,6 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
     <style>
-        :root {
             --primary-color: #00a87e;
             --secondary-color: #f7f7f7;
             --text-color: #2c3e50;
@@ -32,10 +31,53 @@
             margin-bottom: 20px;
             padding: 25px;
         }
+        :root {
+            --primary-color: #00a87e;
+            --secondary-color: #f7f7f7;
+            --text-color: #2c3e50;
+            --card-bg: #fff;
+            --border-color: #e0e0e0;
+        }
+
+        [data-theme="dark"] {
+            --primary-color: #4a90e2;
+            --secondary-color: #181c24;
+            --text-color: #e0e0e0;
+            --card-bg: #1b2838;
+            --border-color: #2d3748;
+        }
+
+        body {
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+        }
+
+        .privacy-section {
+            background: var(--card-bg);
+            padding: 60px 0;
+            margin-bottom: 40px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .info-card {
+            background: var(--card-bg);
+            color: var(--text-color);
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            padding: 25px;
+        }
     </style>
 </head>
 <body>
-    {% include 'navbar.html' %}
+        <script>
+            // Auto-detect and apply dark mode
+            (function() {
+                const theme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            })();
+        </script>
+        {% include 'navbar.html' %}
 
     <div class="privacy-section">
         <div class="container">
