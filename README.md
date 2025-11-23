@@ -1,3 +1,4 @@
+
 # Sailor's Bay Marketplace
 
 A modern, mobile-friendly marketplace web app for buying, selling, and bidding on products and auctions.
@@ -47,6 +48,33 @@ templates/            # Jinja2 HTML templates
    ```
    python app.py
    ```
+
+## Requirements
+```
+Flask==2.3.3
+Werkzeug==2.3.7
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.44
+```
+
+## TODO
+# Setup Instructions for SailBay Project
+
+1. Install Python 3.10+ and ensure `pip` is available.
+2. (Optional) Create and activate a virtual environment:
+   - `python -m venv .venv`
+   - `./.venv/Scripts/activate` (Windows)
+3. Install required packages:
+   - `pip install -r requirements.txt`
+4. Set up the database with sample data:
+   - `python setup_db.py`
+   - This will reset and populate the database with users, products, auctions, reviews, and addresses.
+5. Run the Flask app:
+   - `python app.py`
+   - Access the site at `http://localhost:5000`
+6. (Optional) To reset the database, rerun `python setup_db.py`.
+
+All sample data and schema setup is handled by `setup_db.py`. No other setup scripts are needed.
 
 ## Usage
 - Register or log in to access user features
