@@ -10,21 +10,72 @@
     .product-card {
       transition: transform 0.2s, box-shadow 0.2s;
       height: 100%;
+      background: var(--card-bg, #fff);
+      color: var(--text-color, #222);
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      border: 1px solid var(--border-color, #eee);
     }
     .product-card:hover {
       transform: translateY(-5px);
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      background: var(--card-bg, #f8f9fa);
     }
     .product-image {
       height: 200px;
       object-fit: contain;
-      background: #fff;
-      border-bottom: 1px solid #eee;
+      background: var(--card-bg, #fff);
+      border-bottom: 1px solid var(--border-color, #eee);
       padding: 10px;
+      color: var(--text-color, #222);
     }
     .time-viewed {
       font-size: 0.85rem;
-      color: #666;
+      color: var(--text-color, #666);
+    }
+    .card-title, .card-text, .badge, .btn, .text-success, .text-muted {
+      color: var(--text-color, #222) !important;
+    }
+    .badge.bg-danger {
+      background: #dc3545 !important;
+      color: #fff !important;
+    }
+    .badge.bg-warning {
+      background: #ffc107 !important;
+      color: #000 !important;
+    }
+    .badge.bg-success {
+      background: #28a745 !important;
+      color: #fff !important;
+    }
+    .alert-info {
+      background: var(--card-bg, #e0f7fa);
+      color: var(--text-color, #222);
+      border: 1px solid var(--border-color, #eee);
+    }
+    .empty-state, .text-muted {
+      color: var(--text-color, #888) !important;
+    }
+    [data-theme="dark"] .product-card {
+      background: var(--card-bg, #1b2838) !important;
+      color: var(--text-color, #e0e0e0) !important;
+      border-color: var(--border-color, #2d3748) !important;
+    }
+    [data-theme="dark"] .product-image {
+      background: var(--card-bg, #1b2838) !important;
+      border-bottom: 1px solid var(--border-color, #2d3748) !important;
+      color: var(--text-color, #e0e0e0) !important;
+    }
+    [data-theme="dark"] .card-title, [data-theme="dark"] .card-text, [data-theme="dark"] .badge, [data-theme="dark"] .btn, [data-theme="dark"] .text-success, [data-theme="dark"] .text-muted {
+      color: var(--text-color, #e0e0e0) !important;
+    }
+    [data-theme="dark"] .alert-info {
+      background: var(--card-bg, #1b2838) !important;
+      color: var(--text-color, #e0e0e0) !important;
+      border-color: var(--border-color, #2d3748) !important;
+    }
+    [data-theme="dark"] .empty-state, [data-theme="dark"] .text-muted {
+      color: var(--text-color, #888) !important;
     }
   </style>
 </head>

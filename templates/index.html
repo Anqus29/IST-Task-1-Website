@@ -9,6 +9,53 @@
     <!-- Leaflet CSS for map -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
+                /* Recently Viewed Section Dark Mode Fix */
+                .recently-viewed-card {
+                    background: var(--card-bg, #fff) !important;
+                    color: var(--text-color, #222) !important;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+                    border: 1px solid var(--border-color, #eee);
+                    transition: transform 0.2s, box-shadow 0.2s;
+                }
+                .recently-viewed-card:hover {
+                    transform: translateY(-5px);
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    background: var(--card-bg, #f8f9fa);
+                }
+                .recently-viewed-card .card-img-top {
+                    background: var(--card-bg, #fff) !important;
+                    border-bottom: 1px solid var(--border-color, #eee) !important;
+                    color: var(--text-color, #222) !important;
+                }
+                .recently-viewed-card .card-title, .recently-viewed-card .card-text, .recently-viewed-card .badge, .recently-viewed-card .btn, .recently-viewed-card .text-success, .recently-viewed-card .text-muted {
+                    color: var(--text-color, #222) !important;
+                }
+                .recently-viewed-card .badge.bg-danger {
+                    background: #dc3545 !important;
+                    color: #fff !important;
+                }
+                .recently-viewed-card .badge.bg-warning {
+                    background: #ffc107 !important;
+                    color: #000 !important;
+                }
+                .recently-viewed-card .badge.bg-success {
+                    background: #28a745 !important;
+                    color: #fff !important;
+                }
+                [data-theme="dark"] .recently-viewed-card {
+                    background: var(--card-bg, #1b2838) !important;
+                    color: var(--text-color, #e0e0e0) !important;
+                    border-color: var(--border-color, #2d3748) !important;
+                }
+                [data-theme="dark"] .recently-viewed-card .card-img-top {
+                    background: var(--card-bg, #1b2838) !important;
+                    border-bottom: 1px solid var(--border-color, #2d3748) !important;
+                    color: var(--text-color, #e0e0e0) !important;
+                }
+                [data-theme="dark"] .recently-viewed-card .card-title, [data-theme="dark"] .recently-viewed-card .card-text, [data-theme="dark"] .recently-viewed-card .badge, [data-theme="dark"] .recently-viewed-card .btn, [data-theme="dark"] .recently-viewed-card .text-success, [data-theme="dark"] .recently-viewed-card .text-muted {
+                    color: var(--text-color, #e0e0e0) !important;
+                }
         :root {
             --primary-color: #1e5a8e;
             --secondary-color: #f0f8ff;
@@ -994,6 +1041,9 @@
                             {% endif %}
                             <div class="card-body p-3">
                                 <h6 class="card-title mb-2" style="overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; height: 2.8em; min-height: 2.8em;">{{ p['title'] }}</h6>
+                                {% if p['seller'] and (p['seller']['business_name'] or p['seller']['username']) %}
+                                  <div class="small text-muted mb-1">{{ p['seller']['business_name'] if p['seller']['business_name'] else p['seller']['username'] }}</div>
+                                {% endif %}
                                 <p class="card-text text-success fw-bold mb-2">${{ '%.2f'|format(p['price']) }}</p>
                                 {% if p['stock'] is not none and p['stock'] <= 0 %}
                                     <span class="badge bg-danger">Out of stock</span>

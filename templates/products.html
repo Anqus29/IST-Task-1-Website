@@ -355,56 +355,66 @@
                         </button>
                     </div>
                     <div class="collapse show" id="filterCollapse">
-                        <form method="get" action="{{ url_for('products') }}" class="row g-2 align-items-end" id="filter-form">
-                            <div class="col-12 col-md-2">
-                                <label for="min_price" class="form-label">Min Price</label>
-                                <input type="number" step="0.01" min="0" name="min_price" id="min_price" class="form-control form-control-sm" value="{{ min_price }}">
+                        <div class="card shadow-sm rounded-4 mb-3 filter-card" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+                            <div class="card-body">
+                                    <div class="row justify-content-center mb-4">
+                                      <div class="col-12 d-flex justify-content-center">
+                                        <div class="filter-card card shadow-sm rounded-4 mb-3" id="filterCard" style="max-width: 1140px; width: 100%; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-color);">
+                                <form method="get" action="{{ url_for('products') }}" class="row g-3 align-items-end" id="filter-form">
+                                    <div class="col-12 col-md-2">
+                                        <label for="min_price" class="form-label">Min Price</label>
+                                        <input type="number" step="1" min="0" name="min_price" id="min_price" class="form-control form-control-sm" value="{{ min_price }}">
+                                    </div>
+                                    <div class="col-12 col-md-2">
+                                        <label for="max_price" class="form-label">Max Price</label>
+                                        <input type="number" step="1" min="0" name="max_price" id="max_price" class="form-control form-control-sm" value="{{ max_price }}">
+                                    </div>
+                                    <div class="col-12 col-md-2">
+                                        <label for="min_rating" class="form-label">Min Rating</label>
+                                        <select name="min_rating" id="min_rating" class="form-select form-select-sm">
+                                            <option value="">Any</option>
+                                            {% for r in range(1,6) %}
+                                                <option value="{{ r }}" {% if min_rating == r %}selected{% endif %}>{{ r }}+</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-md-2">
+                                        <label for="availability" class="form-label">Availability</label>
+                                        <select name="availability" id="availability" class="form-select form-select-sm">
+                                            <option value="">All</option>
+                                            <option value="in_stock" {% if availability == 'in_stock' %}selected{% endif %}>In Stock</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-md-2">
+                                        <label for="per_page" class="form-label">Products per page</label>
+                                        <select name="per_page" id="per_page" class="form-select form-select-sm" onchange="document.getElementById('filter-form').submit();">
+                                            {% for n in [8, 12, 16, 20, 24, 32, 48] %}
+                                                <option value="{{ n }}" {% if per_page == n %}selected{% endif %}>{{ n }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-md-2">
+                                        <label for="auction_only" class="form-label">Auction Only</label>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="auction_only" id="auction_only" value="1" {% if auction_only %}checked{% endif %} onchange="this.form.submit()">
+                                            <label class="form-check-label" for="auction_only">Show only auctions</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-2">
+                                        <div class="d-flex flex-column flex-md-row gap-2">
+                                            <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" name="search" value="{{ search }}">
+                                    <input type="hidden" name="sort" value="{{ sort }}">
+                                    <input type="hidden" name="category" value="{{ category }}">
+                                    <input type="hidden" name="condition" value="{{ condition }}">
+                                    <input type="hidden" name="min_price" value="{{ min_price }}">
+                                    <input type="hidden" name="max_price" value="{{ max_price }}">
+                                    <input type="hidden" name="per_page" value="{{ per_page }}">
+                                </form>
                             </div>
-                            <div class="col-12 col-md-2">
-                                <label for="max_price" class="form-label">Max Price</label>
-                                <input type="number" step="0.01" min="0" name="max_price" id="max_price" class="form-control form-control-sm" value="{{ max_price }}">
-                            </div>
-                            <div class="col-12 col-md-2">
-                                <label for="min_rating" class="form-label">Min Rating</label>
-                                <select name="min_rating" id="min_rating" class="form-select form-select-sm">
-                                    <option value="">Any</option>
-                                    {% for r in range(1,6) %}
-                                        <option value="{{ r }}" {% if min_rating == r %}selected{% endif %}>{{ r }}+</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="col-12 col-md-2">
-                                <label for="availability" class="form-label">Availability</label>
-                                <select name="availability" id="availability" class="form-select form-select-sm">
-                                    <option value="">All</option>
-                                    <option value="in_stock" {% if availability == 'in_stock' %}selected{% endif %}>In Stock</option>
-                                </select>
-                            </div>
-                            <div class="col-12 col-md-2">
-                                <label for="per_page" class="form-label">Products per page</label>
-                                <select name="per_page" id="per_page" class="form-select form-select-sm" onchange="document.getElementById('filter-form').submit();">
-                                    {% for n in [8, 12, 16, 20, 24, 32, 48] %}
-                                        <option value="{{ n }}" {% if per_page == n %}selected{% endif %}>{{ n }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="col-12 col-md-2">
-                                <label for="auction_only" class="form-label">Auction Only</label>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="auction_only" id="auction_only" value="1" {% if auction_only %}checked{% endif %}>
-                                    <label class="form-check-label" for="auction_only">Show only auctions</label>
-                                </div>
-                            </div>
-                            <div class="col-12 col-md-2">
-                                <div class="d-flex flex-column flex-md-row gap-2">
-                                    <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
-                                </div>
-                            </div>
-                            <input type="hidden" name="search" value="{{ search }}">
-                            <input type="hidden" name="sort" value="{{ sort }}">
-                            <input type="hidden" name="category" value="{{ category }}">
-                            <input type="hidden" name="condition" value="{{ condition }}">
-                        </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -418,7 +428,7 @@
         [data-theme="dark"] .currency-bar-bg {
             background: var(--card-bg) !important;
         }
-    /* Custom dark mode for Hide Filters button */
+        /* Custom dark mode for Hide Filters button */
     .hide-filters-btn {
         border-color: var(--accent-color);
         color: var(--accent-color);
@@ -457,20 +467,6 @@
                     {% endfor %}
                 </div>
                 <!-- Auction links removed as requested -->
-                <!-- Settings Currency Selector -->
-                <div class="mt-4 p-3 border rounded bg-white" style="background: var(--card-bg);">
-                    <h6 class="fw-bold mb-2" style="color: var(--primary-color);">Settings</h6>
-                    <div class="mb-2">
-                        <label for="currencySelectSettings" class="fw-bold mb-1" style="display:block;">Currency:</label>
-                        <select id="currencySelectSettings" class="form-select form-select-sm w-100">
-                            <option value="USD">USD ($)</option>
-                            <option value="EUR">EUR (€)</option>
-                            <option value="GBP">GBP (£)</option>
-                            <option value="AUD" selected>AUD (A$)</option>
-                            <option value="JPY">JPY (¥)</option>
-                        </select>
-                    </div>
-                </div>
             </aside>
             <!-- Main content -->
             <section class="col-12 col-md-9">
@@ -511,7 +507,36 @@
                                             {% endif %}
                                         </div>
                                         <div class="mb-1">
-                                            <span class="price" style="font-size:1.15rem; color:var(--accent-color); font-weight:bold;">${{ '%.2f'|format(p['price']) }}</span>
+                                            <span class="price product-price" data-base-price="{{ p['price'] }}" style="font-size:1.15rem; color:var(--accent-color); font-weight:bold;">${{ '%.2f'|format(p['price']) }}</span>
+                                            <!-- Currency conversion script -->
+                                            <script>
+                                            const currencyRates = {
+                                                USD: { symbol: '$', rate: 1 },
+                                                EUR: { symbol: '€', rate: 0.92 },
+                                                GBP: { symbol: '£', rate: 0.79 },
+                                                AUD: { symbol: 'A$', rate: 1.53 }
+                                            };
+
+                                            function updateCurrency() {
+                                                const currency = document.getElementById('currencySelect')?.value || 'AUD';
+                                                const rate = currencyRates[currency].rate;
+                                                const symbol = currencyRates[currency].symbol;
+                                                document.querySelectorAll('.product-price').forEach(function(el) {
+                                                    const basePrice = parseFloat(el.getAttribute('data-base-price'));
+                                                    if (!isNaN(basePrice)) {
+                                                        el.textContent = symbol + (basePrice * rate).toFixed(2);
+                                                    }
+                                                });
+                                            }
+
+                                            document.addEventListener('DOMContentLoaded', function() {
+                                                const currencySelect = document.getElementById('currencySelect');
+                                                if (currencySelect) {
+                                                    currencySelect.addEventListener('change', updateCurrency);
+                                                    updateCurrency();
+                                                }
+                                            });
+                                            </script>
                                             {% if p['rating'] %}
                                                 <span class="ms-2">
                                                     {% for i in range(1, 6) %}
@@ -524,9 +549,27 @@
                                                 </span>
                                             {% endif %}
                                         </div>
+                                        {% if p['is_auction'] %}
+                                            <span class="badge auction-badge mb-1" title="This is an auction listing">Auction</span>
+                                        {% endif %}
                                         {% if 'category' in p.keys() and p['category'] %}
                                             <span class="badge bg-secondary mb-1">{{ p['category'] }}</span>
                                         {% endif %}
+                                            <style>
+                                            .auction-badge {
+                                                background: linear-gradient(90deg, #ff9800 60%, #ffc107 100%);
+                                                color: #222e3c;
+                                                font-weight: bold;
+                                                border: none;
+                                                box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                                            }
+                                            [data-theme="dark"] .auction-badge, body.dark-mode .auction-badge {
+                                                background: linear-gradient(90deg, #ffb74d 60%, #ff9800 100%);
+                                                color: #fffbe6;
+                                                border: none;
+                                                box-shadow: 0 2px 8px rgba(255,152,0,0.15);
+                                            }
+                                            </style>
                                         <div class="seller-info mb-2 text-muted small">
                                             {% if not p['seller_id'] %}
                                                 <span class="seller-name">No seller</span>

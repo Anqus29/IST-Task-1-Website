@@ -12,9 +12,12 @@
       --ocean-blue: #006994;
       --accent-color: #FF6B35;
       --secondary-color: #f0f8ff;
+      --text-color: #2c3e50;
+      --card-bg: #ffffff;
+      --border-color: #e9ecef;
     }
 
-    [data-theme="dark"] {
+    body.dark-mode {
       --primary-color: #4a90e2;
       --ocean-blue: #00334d;
       --accent-color: #FF6B35;
@@ -23,31 +26,71 @@
       --card-bg: #1b2838;
       --border-color: #2d3748;
     }
-    /* simple suggestion box styling */
-    .addr-suggestions { border: 1px solid #ddd; background: #fff; position: absolute; z-index: 1000; max-height: 200px; overflow:auto; width:100%; }
-    .addr-suggestions button { width:100%; text-align:left; padding:8px 12px; border:0; background:transparent; }
-    .addr-suggestions button:hover { background:var(--secondary-color); }
+
+    body {
+      background: var(--bg-color, var(--card-bg));
+      color: var(--text-color);
+      transition: background 0.3s, color 0.3s;
+    }
+
+    .container, .list-group-item, .form-control, .btn, .addr-suggestions {
+      background: var(--card-bg);
+      color: var(--text-color);
+      border-color: var(--border-color);
+    }
+
+    .list-group-item {
+      border: 1px solid var(--border-color);
+    }
+
+    .form-control {
+      background: var(--card-bg);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+    }
+    .form-control:focus {
+      background: var(--card-bg);
+      color: var(--text-color);
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 0.2rem rgba(74,144,226,0.25);
+    }
+    .btn-success {
+      background: var(--accent-color);
+      color: #fff;
+      border: none;
+    }
+    .btn-success:hover, .btn-success:focus {
+      background: #e55a1c;
+      color: #fff;
+    }
+    .addr-suggestions {
+      border: 1px solid var(--border-color);
+      background: var(--card-bg);
+      color: var(--text-color);
+    }
+    .addr-suggestions button {
+      color: var(--text-color);
+    }
+    .addr-suggestions button:hover {
+      background: var(--secondary-color);
+      color: var(--text-color);
+    }
     .addr-wrap { position:relative; }
 
-    /* Mobile-friendly form styles */
-    .form-control,
-    .btn {
-      min-height: 44px;
+    h1, h4, label, .fw-bold, .form-label, .form-text, .text-muted {
+      color: var(--text-color) !important;
     }
 
     @media (max-width: 576px) {
       body.p-4 {
         padding: 1rem !important;
       }
-
       h1 {
         font-size: 1.75rem;
       }
-
       h4 {
         font-size: 1.25rem;
       }
-
       .btn {
         width: 100%;
       }
@@ -55,6 +98,22 @@
   </style>
 </head>
 <body class="p-4">
+  <script>
+    // Auto-detect dark mode and apply
+    document.addEventListener('DOMContentLoaded', function() {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (prefersDark) {
+        document.body.classList.add('dark-mode');
+      }
+      // If user has a theme preference in localStorage, use it
+      const theme = localStorage.getItem('theme');
+      if (theme === 'dark') {
+        document.body.classList.add('dark-mode');
+      } else if (theme === 'light') {
+        document.body.classList.remove('dark-mode');
+      }
+    });
+  </script>
   {% include 'navbar.html' %}
 
   <div class="container">

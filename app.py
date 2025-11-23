@@ -297,6 +297,7 @@ def products():
     condition = request.args.get('condition', '')
     min_price = request.args.get('min_price', '')
     max_price = request.args.get('max_price', '')
+    auction_only = request.args.get('auction_only', '')
     page = int(request.args.get('page', 1))
     per_page_raw = request.args.get('per_page', 12)
     try:
@@ -332,6 +333,8 @@ def products():
             query = query.filter(Product.price <= float(max_price))
         except ValueError:
             pass
+    if auction_only:
+        query = query.filter(Product.is_auction == 1)
     
     # Apply sorting (in-stock items first, then out-of-stock)
     if sort == 'price_low':
@@ -347,6 +350,9 @@ def products():
     total_products = query.count()
     products_raw = query.offset((page-1)*per_page).limit(per_page).all()
     products_list = [dict(row._mapping) for row in products_raw]
+    # Add is_auction flag for badge rendering
+    for prod in products_list:
+        prod['is_auction'] = prod.get('is_auction', 0) or 0
     total_pages = ceil(total_products / per_page)
     
     # Get distinct categories and conditions for filters
@@ -368,7 +374,8 @@ def products():
                          page=page,
                          per_page=per_page,
                          total_pages=total_pages,
-                         total=total_products)
+                         total=total_products,
+                         auction_only=auction_only)
 
 # --- Product detail route: shows product info, reviews, auction data, and related products ---
 @app.route('/product/<int:product_id>')

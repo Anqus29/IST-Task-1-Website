@@ -283,13 +283,15 @@
             <input type="hidden" name="product_id" value="{{ product['id'] }}">
             <input type="hidden" name="next" value="{{ request.path }}">
             <div class="row g-2 align-items-center">
-              <div class="col-auto">
-                <label class="form-label mb-0">Qty</label>
-                <input type="number" name="quantity" value="1" min="1" class="form-control" style="width:100px;">
+              <div class="col-auto d-flex align-items-center">
+                <label class="form-label mb-0 me-2">Qty</label>
+                <input type="number" name="quantity" value="1" min="1" class="form-control" style="width:80px; color:#000;">
               </div>
-              <div class="col">
-                <button class="btn btn-primary mt-2" type="submit">Add to cart</button>
-                <a href="{{ url_for('cart_view') }}" class="btn btn-outline-secondary mt-2 ms-2">View cart</a>
+              <div class="col-auto">
+                <button class="btn btn-primary" type="submit">Add to cart</button>
+              </div>
+              <div class="col-auto">
+                <a href="{{ url_for('cart_view') }}" class="btn btn-outline-secondary">View cart</a>
               </div>
             </div>
           </form>

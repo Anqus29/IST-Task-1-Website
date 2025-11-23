@@ -120,7 +120,9 @@
       border-color: var(--border-color) !important;
     }
     .table-hover tbody tr:hover {
-      background: rgba(100,100,100,0.08);
+      background: var(--accent-color);
+      color: #fff;
+      transition: background 0.2s;
     }
     .text-muted {
       color: #888 !important;
@@ -409,7 +411,7 @@
                                 <span class="badge bg-secondary">{{ o['status'] }}</span>
                               {% endif %}
                             </td>
-                            <td><small>{{ o['created_at'][:10] if o['created_at'] else '' }}</small></td>
+                            <td><small>{{ o['created_at'].strftime('%Y-%m-%d') if o['created_at'] else '' }}</small></td>
                           </tr>
                         {% endfor %}
                       </tbody>
