@@ -512,8 +512,7 @@
                         <p class="text-muted mb-2 small" id="weather-location">Getting location...</p>
                         <button id="change-location-btn" class="btn btn-sm btn-outline-primary mb-2" onclick="showLocationModal()">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-geo-alt me-1" viewBox="0 0 16 16" style="vertical-align: -2px;">
-                                <path d="M12.166 8.94c-.524 1.062-1.234 2.12-1.96 3.07A31.493 31.493 0 0 1 8 14.58a31.481 31.481 0 0 1-2.206-2.57c-.726-.95-1.436-2.008-1.96-3.07C3.304 7.867 3 6.862 3 6a5 5 0 0 1 10 0c0 .862-.305 1.867-.834 2.94zM8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10z"/>
-                                <path d="M8 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                                <path d="M12.166 8.94c-.524 1.062-1.234 2.12-1.96 3.07A31.493 31.493 0 0 1 8 14.58a31.481 31.481 0 0 1-2.206-2.57c-.726-.95-1.436-2.008-1.96-3.07C3.304 7.867 3 6.862 3 6a5 5 0 0 1 10 0c0 .862-.305 1.867-.834 2.94zM8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-4 2 2 0 0 1 0 4zm0 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
                             </svg>
                             Change Location
                         </button>
@@ -565,7 +564,7 @@
                     <div class="modal-header">
                         <h5 class="modal-title" id="locationModalLabel">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-geo-alt-fill me-2" viewBox="0 0 16 16">
-                                <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
+                                <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-4 3 3 0 0 1 0 6z"/>
                             </svg>
                             Set Your Location
                         </h5>
@@ -634,10 +633,16 @@
         <!-- Carousel -->
         <style>
             #featuredCarousel .carousel-control-prev {
-                left: -60px;
+                left: 50%;
+                top: 105%;
+                transform: translateX(-120%) translateY(-50%);
+                z-index: 2;
             }
             #featuredCarousel .carousel-control-next {
-                right: -60px;
+                left: 50%;
+                top: 105%;
+                transform: translateX(20%) translateY(-50%);
+                z-index: 2;
             }
             #featuredCarousel .carousel-control-prev-icon,
             #featuredCarousel .carousel-control-next-icon {
@@ -648,14 +653,26 @@
                 padding: 8px;
             }
             @media (max-width: 768px) {
-                #featuredCarousel .carousel-control-prev {
-                    left: 0;
+                #featuredCarousel .carousel-control-prev,
+                #featuredCarousel .carousel-control-next {
+                    left: 50%;
+                    right: auto;
+                    top: 90%;
+                    transform: translateX(-120%) translateY(-50%);
+                    z-index: 2;
                 }
                 #featuredCarousel .carousel-control-next {
-                    right: 0;
+                    left: 50%;
+                    right: auto;
+                    top: 90%;
+                    transform: translateX(20%) translateY(-50%);
                 }
                 .carousel-item .col-md-4:nth-child(n+2) {
                     display: none;
+                }
+                #featuredCarousel .carousel-control-prev-icon,
+                #featuredCarousel .carousel-control-next-icon {
+                    pointer-events: auto;
                 }
             }
             @media (min-width: 769px) and (max-width: 991px) {
@@ -665,11 +682,40 @@
             }
         </style>
         <div id="featuredCarousel" class="carousel slide mb-5">
-            <div class="carousel-indicators">
-                {% set products_to_show = featured_products * 3 if featured_products|length < 3 else featured_products %}
-                {% for i in range(0, products_to_show|length, 3) %}
-                <button type="button" data-bs-target="#featuredCarousel" data-bs-slide-to="{{ loop.index0 }}" {% if loop.first %}class="active" aria-current="true"{% endif %} aria-label="Slide {{ loop.index }}"></button>
-                {% endfor %}
+            <!-- Arrows removed, only new controls remain -->
+            <div class="d-flex justify-content-center align-items-center" style="bottom: -60px; position: absolute; width: 100%;">
+                <button class="btn btn-outline-secondary me-2" type="button" onclick="document.querySelector('#featuredCarousel .carousel-control-prev').click()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" class="bi bi-arrow-left" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M15 8a.5.5 0 0 1-.5.5H3.707l4.147 4.146a.5.5 0 0 1-.708.708l-5-5a.5.5 0 0 1 0-.708l5-5a.5.5 0 1 1 .708.708L3.707 7.5H14.5A.5.5 0 0 1 15 8z"/>
+                    </svg>
+                </button>
+                <div class="carousel-indicators" style="position: static; margin: 0 8px;">
+                    <style>
+                        #featuredCarousel .carousel-indicators button {
+                            width: 20px;
+                            height: 20px;
+                            border-radius: 50%;
+                            background-color: #fff;
+                            border: none;
+                            margin: 0 6px;
+                            box-shadow: 0 0 2px #333;
+                        }
+                        #featuredCarousel .carousel-indicators .active {
+                            background-color: #fff;
+                            box-shadow: 0 0 6px #333;
+                            border: 2px solid #333;
+                        }
+                    </style>
+                    {% set products_to_show = featured_products * 3 if featured_products|length < 3 else featured_products %}
+                    {% for i in range(0, products_to_show|length, 3) %}
+                    <button type="button" data-bs-target="#featuredCarousel" data-bs-slide-to="{{ loop.index0 }}" {% if loop.first %}class="active" aria-current="true"{% endif %} aria-label="Slide {{ loop.index }}"></button>
+                    {% endfor %}
+                </div>
+                <button class="btn btn-outline-secondary ms-2" type="button" onclick="document.querySelector('#featuredCarousel .carousel-control-next').click()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h10.793l-4.147-4.146a.5.5 0 0 1 .708-.708l5 5a.5.5 0 0 1 0 .708l-5 5a.5.5 0 1 1-.708-.708L12.293 8.5H1.5A.5.5 0 0 1 1 8z"/>
+                    </svg>
+                </button>
             </div>
             <div class="carousel-inner">
                 {% set products_to_show = featured_products * 3 if featured_products|length < 3 else featured_products %}
@@ -721,31 +767,38 @@
                 </div>
                 {% endfor %}
             </div>
-            <button class="carousel-control-prev" type="button" data-bs-target="#featuredCarousel" data-bs-slide="prev">
-                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                <span class="visually-hidden">Previous</span>
-            </button>
-            <button class="carousel-control-next" type="button" data-bs-target="#featuredCarousel" data-bs-slide="next">
-                <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                <span class="visually-hidden">Next</span>
-            </button>
         </div>
         
         <script>
             // Make carousel truly infinite and continuous
             document.addEventListener('DOMContentLoaded', function() {
                 const carousel = document.getElementById('featuredCarousel');
+                let carouselInstance = null;
                 if (carousel) {
-                    const carouselInstance = new bootstrap.Carousel(carousel, {
+                    carouselInstance = new bootstrap.Carousel(carousel, {
                         interval: 3000,  // Auto-advance every 3 seconds
                         wrap: true,      // Enable looping
                         ride: 'carousel', // Start automatically
                         pause: 'hover'   // Pause on hover
                     });
-                    
                     // Ensure smooth continuous scrolling
                     carousel.addEventListener('slid.bs.carousel', function () {
                         // Bootstrap handles the wrapping automatically with wrap: true
+                    });
+                }
+                // Arrow button event listeners
+                const prevBtn = document.querySelector('#featuredCarousel .btn-outline-secondary.me-2');
+                const nextBtn = document.querySelector('#featuredCarousel .btn-outline-secondary.ms-2');
+                if (prevBtn && carouselInstance) {
+                    prevBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        carouselInstance.prev();
+                    });
+                }
+                if (nextBtn && carouselInstance) {
+                    nextBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        carouselInstance.next();
                     });
                 }
             });
@@ -758,7 +811,10 @@
         {% endif %}
 
         <!-- Popular Categories Section -->
-        <div class="my-5">
+                <div class="mt-5 pt-5 mb-5">
+                </div>
+
+                <!-- Carousel Navigation Arrows Below Categories -->
             <h3 class="mb-4 text-center">Browse Sailing Categories</h3>
             <div class="row row-cols-2 row-cols-md-3 row-cols-lg-6 g-3">
                 <div class="col">

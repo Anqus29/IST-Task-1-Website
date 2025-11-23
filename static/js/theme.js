@@ -53,6 +53,12 @@
     }
   }
 
+  // Force icon update on initial load
+  document.addEventListener('DOMContentLoaded', function() {
+    const savedTheme = localStorage.getItem('theme');
+    updateIcon(savedTheme === 'dark');
+  });
+
   if (savedTheme === 'light') {
     setTheme('light');
   } else if (savedTheme === 'dark') {
