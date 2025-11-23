@@ -1,0 +1,7 @@
+Flask>=2.0
+SQLAlchemy>=1.4
+Werkzeug>=2.0
+Jinja2>=3.0
+itsdangerous>=2.0
+click>=8.0
+bootstrap-flask>=2.0
