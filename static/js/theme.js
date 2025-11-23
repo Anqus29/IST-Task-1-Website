@@ -24,6 +24,15 @@
         usernameDisplay.style.color = '#0d6efd'; // bootstrap primary blue for light mode
       }
     }
+    // Update currency selector dark mode
+    var currencySelect = document.getElementById('currencySelect');
+    if (currencySelect) {
+      if (theme === 'dark') {
+        currencySelect.classList.add('bg-dark', 'text-light');
+      } else {
+        currencySelect.classList.remove('bg-dark', 'text-light');
+      }
+    }
   }
 
   function updateIcon(isDark) {

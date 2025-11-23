@@ -134,24 +134,21 @@
 </head>
 <body>
     {% include 'navbar.html' %}
-
-    <div class="container position-relative" style="z-index: 1;">
-        <div class="rounded-4 mb-4 px-4 py-4" style="background: linear-gradient(120deg, var(--primary-color) 0%, var(--ocean-blue) 100%); opacity: 0.18;">
-            <h1 class="mb-0" style="position: relative; z-index: 2; color: var(--primary-color);">My Bids</h1>
-        </div>
-        <h1 class="mb-4">My Bids</h1>
-
-        <div class="row">
-            <div class="col-12">
+    <div class="container position-relative py-4" style="z-index: 1;">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 col-md-10 col-12">
+                <div class="mb-4">
+                    <h1 class="fw-bold text-center" style="color: var(--primary-color);">My Bids</h1>
+                </div>
                 {% if winning_bids %}
                 <div class="section mb-4">
-                    <h2>🏆 Currently Winning</h2>
+                    <h2 class="fw-bold" style="color: #4caf50;">🏆 Currently Winning</h2>
                     {% for bid, product in winning_bids %}
-                    <div class="bid-item">
+                    <div class="bid-item flex-wrap">
                         {% if product.image_url %}
-                        <img src="{{ product.image_url }}" alt="{{ product.title }}" class="bid-image">
+                        <img src="{{ product.image_url }}" alt="{{ product.title }}" class="bid-image mb-2 mb-md-0">
                         {% else %}
-                        <div class="bid-image d-flex align-items-center justify-content-center text-muted">No Image</div>
+                        <div class="bid-image d-flex align-items-center justify-content-center text-muted mb-2 mb-md-0">No Image</div>
                         {% endif %}
                         <div class="bid-info">
                             <div class="bid-title">{{ product.title }}</div>
@@ -181,11 +178,11 @@
                         <div class="card-body pt-3">
                             {% if bids %}
                                 {% for bid, product in bids %}
-                                <div class="bid-item mb-3 pb-3" style="border-bottom: 1px solid var(--border-color);">
+                                <div class="bid-item mb-3 pb-3 flex-wrap" style="border-bottom: 1px solid var(--border-color);">
                                     {% if product.image_url %}
-                                        <img src="{{ product.image_url }}" alt="{{ product.title }}" class="bid-image">
+                                        <img src="{{ product.image_url }}" alt="{{ product.title }}" class="bid-image mb-2 mb-md-0">
                                     {% else %}
-                                        <div class="bid-image d-flex align-items-center justify-content-center text-muted">No Image</div>
+                                        <div class="bid-image d-flex align-items-center justify-content-center text-muted mb-2 mb-md-0">No Image</div>
                                     {% endif %}
                                     <div class="bid-info">
                                         <div class="bid-title">{{ product.title }}</div>

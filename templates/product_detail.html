@@ -12,11 +12,33 @@
       --ocean-blue: #006994;
       --accent-color: #FF6B35;
       --secondary-color: #f0f8ff;
+      --card-bg: #fff;
+      --text-color: #222;
+      --border-color: #eee;
     }
-    .product-image { max-height: 420px; object-fit: contain; width:100%; background:#fff; border:1px solid #eee; padding:8px; }
-    .company-statement { background:var(--secondary-color); border-left:4px solid var(--primary-color); padding:12px; margin-top:12px; }
+    body.dark-mode {
+      --card-bg: #222e3c;
+      --text-color: #e0e6ed;
+      --border-color: #444e5e;
+      --secondary-color: #233044;
+      background: #222e3c !important;
+    }
+    .product-image { max-height: 420px; object-fit: contain; width:100%; background:var(--card-bg); border:1px solid var(--border-color); padding:8px; color:var(--text-color); }
+    .company-statement { background:var(--secondary-color); border-left:4px solid var(--primary-color); padding:12px; margin-top:12px; color:var(--text-color); }
     .stock-badge.low { background:#ffc107; color:#000; }
     .stock-badge.out { background:#dc3545; color:#fff; }
+    .card, .list-group-item, .alert, .modal-content {
+      background: var(--card-bg) !important;
+      color: var(--text-color) !important;
+      border-color: var(--border-color) !important;
+    }
+    h1, h2, h3, h4, h5, h6,
+    .lead, .form-label, .form-control, .form-select, .btn, .badge,
+    .text-success, .text-muted, .text-warning, .text-danger,
+    .text-primary, .text-secondary, .text-info, .text-dark, .text-light,
+    p, a, span, strong, small, label, div {
+      color: var(--text-color) !important;
+    }
 
     /* Mobile Responsive Styles */
     @media (max-width: 768px) {
@@ -59,6 +81,7 @@
       .btn {
         width: 100%;
         margin: 5px 0 !important;
+        color: var(--text-color) !important;
       }
 
       .ms-2 {

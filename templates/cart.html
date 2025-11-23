@@ -270,22 +270,22 @@
     <div class="row row-cols-2 row-cols-md-4 g-2">
       {% for p in recently_viewed %}
         <div class="col">
-          <div class="card h-100" style="transition: transform 0.2s;">
-            <a href="{{ url_for('product_detail', product_id=p['id']) }}" class="text-decoration-none" style="color: var(--text-color);">
-              {% if 'image_url' in p.keys() and p['image_url'] %}
-                {% set img = p['image_url'] %}
+          <div class="card h-100" style="transition: transform 0.2s; background: var(--card-bg, #fff); color: var(--text-color, #222);">
+            <a href="{{ url_for('product_detail', product_id=p['id'] if p is mapping else p.id) }}" class="text-decoration-none" style="color: var(--text-color);">
+              {% if (p is mapping and p['image_url']) or (p is not mapping and p.image_url is defined and p.image_url) %}
+                {% set img = p['image_url'] if p is mapping else p.image_url %}
                 {% if img.startswith('http://') or img.startswith('https://') or img.startswith('/') %}
-                  <img src="{{ img }}" class="card-img-top" alt="{{ p['title'] }}" style="height: 150px; object-fit: contain; background: #fff; padding: 10px;">
+                  <img src="{{ img }}" class="card-img-top" alt="{{ p['title'] if p is mapping else p.title }}" style="height: 150px; object-fit: contain; background: #fff; padding: 10px;">
                 {% else %}
-                  <img src="{{ url_for('static', filename='img/' ~ img) }}" class="card-img-top" alt="{{ p['title'] }}" style="height: 150px; object-fit: contain; background: #fff; padding: 10px;">
+                  <img src="{{ url_for('static', filename='img/' ~ img) }}" class="card-img-top" alt="{{ p['title'] if p is mapping else p.title }}" style="height: 150px; object-fit: contain; background: #fff; padding: 10px;">
                 {% endif %}
               {% else %}
                 <img src="https://via.placeholder.com/200x150?text=No+Image" class="card-img-top" alt="No image" style="height: 150px; object-fit: contain;">
               {% endif %}
-              <div class="card-body p-2">
-                <h6 class="card-title mb-1" style="font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ p['title'] }}</h6>
-                <p class="card-text text-success fw-bold mb-0" style="font-size: 0.9rem;">${{ '%.2f'|format(p['price']) }}</p>
-                {% if p['stock'] is not none and p['stock'] <= 0 %}
+              <div class="card-body p-2" style="background: var(--card-bg, #fff); color: var(--text-color, #222);">
+                <h6 class="card-title mb-1" style="font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ p['title'] if p is mapping else p.title }}</h6>
+                <p class="card-text text-success fw-bold mb-0" style="font-size: 0.9rem;">${{ '%.2f'|format(p['price'] if p is mapping else p.price) }}</p>
+                {% if (p['stock'] if p is mapping else p.stock) is not none and (p['stock'] if p is mapping else p.stock) <= 0 %}
                   <span class="badge bg-danger" style="font-size: 0.65rem;">Out of stock</span>
                 {% endif %}
               </div>

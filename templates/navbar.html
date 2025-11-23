@@ -73,14 +73,130 @@
 <!-- User Sidebar - Always visible -->
 <div class="offcanvas offcanvas-start" tabindex="-1" id="userSidebar" aria-labelledby="userSidebarLabel">
   <div class="offcanvas-header" style="background: var(--primary-color); color: var(--text-color);">
-    <h5 class="offcanvas-title" id="userSidebarLabel">
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-person-circle me-2" viewBox="0 0 16 16">
-        <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
-        <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"/>
-      </svg>
-      {% if session.get('username') %}{{ session['username'] }}{% else %}Menu{% endif %}
-    </h5>
-    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    <div class="d-flex align-items-center w-100 justify-content-between">
+      <h5 class="offcanvas-title" id="userSidebarLabel">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#fff" class="bi bi-person-circle me-2" viewBox="0 0 16 16">
+          <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
+          <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"/>
+        </svg>
+        <span style="color:#fff;">{% if session.get('username') %}{{ session['username'] }}{% else %}Menu{% endif %}</span>
+      </h5>
+      <div class="d-flex gap-2">
+        <!-- Dark Mode Toggle (mobile sidebar) -->
+        <button id="darkModeToggleSidebar" class="btn btn-dark-mode-accent" title="Toggle Dark Mode">
+          <svg id="darkModeIconSidebar" width="22" height="22" viewBox="0 0 16 16">
+            <g id="moonSidebar" style="display:inline;">
+              <circle fill="#fff" cx="8" cy="8" r="6"/>
+            </g>
+            <g id="sunSidebar" style="display:none;">
+              <circle fill="#fff" cx="8" cy="8" r="3.5"/>
+              <g stroke="#fff" stroke-width="1">
+                <line x1="8" y1="1" x2="8" y2="3"/>
+                <line x1="8" y1="13" x2="8" y2="15"/>
+                <line x1="1" y1="8" x2="3" y2="8"/>
+                <line x1="13" y1="8" x2="15" y2="8"/>
+                <line x1="3.22" y1="3.22" x2="4.64" y2="4.64"/>
+                <line x1="11.36" y1="11.36" x2="12.78" y2="12.78"/>
+                <line x1="3.22" y1="12.78" x2="4.64" y2="11.36"/>
+                <line x1="11.36" y1="4.64" x2="12.78" y2="3.22"/>
+              </g>
+            </g>
+          </svg>
+        </button>
+        <!-- Cart Icon (mobile sidebar) -->
+        <a href="{{ url_for('cart_view') }}" class="btn btn-cart-accent position-relative">
+          <style>
+            .btn-dark-mode-accent {
+              background: var(--accent-color, #FF6B35) !important;
+              color: #fff !important;
+              border: none !important;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            }
+            .btn-dark-mode-accent:hover, .btn-dark-mode-accent:focus {
+              background: #ff8c42 !important;
+              color: #fff !important;
+            }
+            .btn-cart-accent {
+              background: var(--primary-color, #1e5a8e) !important;
+              color: #fff !important;
+              border: none !important;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            }
+            .btn-cart-accent:hover, .btn-cart-accent:focus {
+              background: #357ab8 !important;
+              color: #fff !important;
+            }
+          </style>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#fff" class="bi bi-cart" viewBox="0 0 16 16">
+            <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5zM3.102 4l1.313 7h8.17l1.313-7H3.102zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+          </svg>
+          <style>
+            .btn-cart-accent {
+              background: rgba(255,255,255,0.08) !important;
+              color: #fff !important;
+              border: 2px solid #fff !important;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            }
+            .btn-cart-accent:hover, .btn-cart-accent:focus {
+              background: #357ab8 !important;
+              color: #fff !important;
+              border: 2px solid #fff !important;
+            }
+            #darkModeToggleSidebar {
+              background: transparent !important;
+              color: var(--text-color, #222) !important;
+              border: 1.5px solid var(--bs-secondary, #6c757d) !important;
+              box-shadow: none !important;
+            }
+            #darkModeToggleSidebar:hover, #darkModeToggleSidebar:focus {
+              background: var(--bs-secondary, #6c757d) !important;
+              color: #fff !important;
+              border: 1.5px solid var(--bs-secondary, #6c757d) !important;
+            }
+          </style>
+          <span id="cart-count-sidebar" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">{{ cart_item_count or 0 }}</span>
+        </a>
+      </div>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+  <script>
+  // Sync dark mode toggle between navbar and sidebar
+  document.addEventListener('DOMContentLoaded', function() {
+    var darkModeToggle = document.getElementById('darkModeToggle');
+    var darkModeToggleSidebar = document.getElementById('darkModeToggleSidebar');
+    var darkModeIcon = document.getElementById('darkModeIcon');
+    var darkModeIconSidebar = document.getElementById('darkModeIconSidebar');
+    function setDarkIcon(isDark) {
+      var sunSidebar = document.getElementById('sunSidebar');
+      var moonSidebar = document.getElementById('moonSidebar');
+      if (isDark) {
+        if (sunSidebar) sunSidebar.style.display = 'inline';
+        if (moonSidebar) moonSidebar.style.display = 'none';
+      } else {
+        if (sunSidebar) sunSidebar.style.display = 'none';
+        if (moonSidebar) moonSidebar.style.display = 'inline';
+      }
+      // Top menu icon (unchanged)
+      var sun = '<path d="M8 4.5a3.5 3.5 0 1 1 0 7a3.5 3.5 0 0 1 0-7zm0-3a.5.5 0 0 1 .5.5V3a.5.5 0 0 1-1 0V2a.5.5 0 0 1 .5-.5zm0 12a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0v-1a.5.5 0 0 1 .5-.5zm7-5a.5.5 0 0 1 .5.5h1a.5.5 0 0 1 0-1h-1a.5.5 0 0 1-.5.5zm-12 0a.5.5 0 0 1 .5.5H2a.5.5 0 0 1 0-1H1a.5.5 0 0 1-.5.5zm10.657-6.657a.5.5 0 0 1 .707 0l.707.707a.5.5 0 0 1-.707.707l-.707-.707a.5.5 0 0 1 0-.707zm-9.193 9.193a.5.5 0 0 1 .707 0l.707.707a.5.5 0 0 1-.707.707l-.707-.707a.5.5 0 0 1 0-.707zm9.193 9.193a.5.5 0 0 1 0-.707l.707-.707a.5.5 0 0 1 .707.707l-.707.707a.5.5 0 0 1-.707 0zm-9.193-9.193a.5.5 0 0 1 0-.707l.707-.707a.5.5 0 0 1 .707.707l-.707.707a.5.5 0 0 1-.707 0z"/>';
+      var moon = '<path d="M6 0a7 7 0 0 0 0 14c3.866 0 7-3.134 7-7a7 7 0 0 0-7-7zm0 1a6 6 0 0 1 0 12A6 6 0 0 1 6 1z"/>';
+      if (isDark) {
+        darkModeIcon.innerHTML = sun;
+      } else {
+        darkModeIcon.innerHTML = moon;
+      }
+    }
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark-mode');
+      setDarkIcon(document.body.classList.contains('dark-mode'));
+      localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+    }
+    if (darkModeToggle) darkModeToggle.onclick = toggleDarkMode;
+    if (darkModeToggleSidebar) darkModeToggleSidebar.onclick = toggleDarkMode;
+    // Initial icon
+    setDarkIcon(document.body.classList.contains('dark-mode'));
+    // Remove auto dark mode activation. Only change on button press.
+  });
+  </script>
   </div>
   <div class="offcanvas-body p-0">
     {% if session.get('username') %}
@@ -151,6 +267,7 @@
         </svg>
         My Bids
       </a>
+      <!-- Auction links removed from sidebar -->
 
       {% if current_user_is_seller %}
       <!-- Seller Section -->
@@ -187,28 +304,7 @@
         Admin Dashboard
       </a>
       {% endif %}
-      <!-- Auctions Section -->
-      <h6 class="list-group-item" style="background: var(--card-bg); color: var(--text-color); font-size: small; font-weight: bold;">AUCTIONS</h6>
-      <a href="{{ url_for('auctions') }}" class="list-group-item list-group-item-action">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-hammer me-2" viewBox="0 0 16 16">
-          <path d="M9.972 2.508a.5.5 0 0 0-.16-.556l-.178-.129a5.009 5.009 0 0 0-2.076-.783C6.215.862 4.504 1.229 2.84 3.133H1.786a.5.5 0 0 0-.354.147L.146 4.567a.5.5 0 0 0 0 .706l2.571 2.579a.5.5 0 0 0 .708 0l1.286-1.29a.5.5 0 0 0 .146-.353V5.57l8.387 8.873A.5.5 0 0 0 14 14.5l1.5-1.5a.5.5 0 0 0 .017-.689l-9.129-8.63c.747-.456 1.772-.839 3.112-.839a.5.5 0 0 0 .472-.334z"/>
-        </svg>
-        Live Auctions
-      </a>
-      <a href="{{ url_for('auctions', ending='soon') }}" class="list-group-item list-group-item-action">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clock me-2" viewBox="0 0 16 16">
-          <path d="M8 3.5a.5.5 0 0 1 .5.5v3.25l2.5 1.5a.5.5 0 0 1-.5.865l-3-1.8A.5.5 0 0 1 7 7.5V4a.5.5 0 0 1 .5-.5z"/>
-          <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm0-1A7 7 0 1 1 8 1a7 7 0 0 1 0 14z"/>
-        </svg>
-        Ending Soon
-      </a>
-      <a href="{{ url_for('auctions', boat='1') }}" class="list-group-item list-group-item-action">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-tsunami me-2" viewBox="0 0 16 16">
-          <path d="M.5 13.5a.5.5 0 0 1 .5-.5c1.276 0 2.223-.21 2.947-.636.61-.357 1.074-.877 1.52-1.607l.12-.2c.451-.75.955-1.27 1.64-1.607.68-.336 1.53-.457 2.596-.457 1.07 0 1.92.12 2.602.457.686.337 1.19.857 1.64 1.607l.12.2c.446.73.909 1.25 1.52 1.607.724.425 1.67.636 2.946.636a.5.5 0 0 1 0 1c-1.405 0-2.52-.233-3.402-.744-.794-.464-1.388-1.106-1.906-1.96l-.118-.197c-.451-.75-.838-1.147-1.274-1.37-.433-.214-1.052-.349-2.228-.349-1.175 0-1.794.135-2.227.35-.436.222-.823.618-1.275 1.368l-.117.197c-.518.854-1.113 1.496-1.907 1.96-.882.51-1.997.744-3.402.744a.5.5 0 0 1-.5-.5Z"/>
-          <path d="M3.5 3a.5.5 0 0 0-1 0v1.086A1.5 1.5 0 0 0 1 5.5H.5a.5.5 0 0 0 0 1H1a.5.5 0 0 0 .5-.5c0-.276.224-.5.5-.5h1a.5.5 0 0 0 .5-.5V3Zm9 0a.5.5 0 0 0-1 0v1.086A1.5 1.5 0 0 0 11 5.5h-.5a.5.5 0 0 0 0 1h.5a.5.5 0 0 0 .5-.5c0-.276.224-.5.5-.5h1a.5.5 0 0 0 .5-.5V3Z"/>
-        </svg>
-        Boat Auctions
-      </a>
+      <!-- Auctions section removed from sidebar -->
 
       <!-- Account Section -->
       <h6 class="list-group-item bg-light text-muted small fw-bold mb-0">ACCOUNT</h6>
@@ -304,12 +400,7 @@
         </svg>
         My Cart
       </a>
-      <a href="{{ url_for('login') }}" class="list-group-item list-group-item-action">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-hammer me-2" viewBox="0 0 16 16">
-          <path d="M9.972 2.508a.5.5 0 0 0-.16-.556l-.178-.129a5.009 5.009 0 0 0-2.076-.783C6.215.862 4.504 1.229 2.84 3.133H1.786a.5.5 0 0 0-.354.147L.146 4.567a.5.5 0 0 0 0 .706l2.571 2.579a.5.5 0 0 0 .708 0l1.286-1.29a.5.5 0 0 0 .146-.353V5.57l8.387 8.873A.5.5 0 0 0 14 14.5l1.5-1.5a.5.5 0 0 0 .017-.689l-9.129-8.63c.747-.456 1.772-.839 3.112-.839a.5.5 0 0 0 .472-.334z"/>
-        </svg>
-        My Bids
-      </a>
+      <!-- My Bids link removed for logged out users -->
 
       <!-- Seller Section -->
       <h6 class="list-group-item" style="background: var(--card-bg); color: var(--text-color); font-size: small; font-weight: bold;">SELLING</h6>

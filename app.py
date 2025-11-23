@@ -1739,6 +1739,7 @@ def seller_dashboard():
     top_by_category = [dict(row._mapping) for row in top_by_category_raw]
     
     return render_template('seller_dashboard.html', 
+                         user=user,
                          product_count=product_count,
                          order_count=order_stats.count,
                          revenue=order_stats.revenue,
@@ -2025,6 +2026,36 @@ def delete_product(product_id):
         db.session.rollback()
         flash('Error deleting product.')
     return redirect(url_for('my_listings'))
+
+@app.route('/update_seller_profile', methods=['POST'])
+@login_required
+def update_seller_profile():
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    if not user or not user.is_seller:
+        flash("Seller access required.", "warning")
+        return redirect(url_for('seller_dashboard'))
+
+    business_name = request.form.get('business_name')
+    seller_description = request.form.get('seller_description')
+    profile_picture = request.form.get('profile_picture')
+
+    user.business_name = business_name
+    user.seller_description = seller_description
+    user.profile_picture = profile_picture
+    db.session.commit()
+    flash("Seller profile updated successfully.", "success")
+    return redirect(url_for('seller_dashboard'))
+
+@app.route('/edit-seller-profile')
+@login_required
+def edit_seller_profile():
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    if not user or not user.is_seller:
+        flash("Seller access required.", "warning")
+        return redirect(url_for('seller_dashboard'))
+    return render_template('seller_profile_edit.html', user=user)
 
 if __name__ == '__main__':
     app.run(debug=True)

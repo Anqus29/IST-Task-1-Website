@@ -149,17 +149,19 @@
         
         /* Form controls dark mode */
         [data-theme="dark"] .form-control,
-        [data-theme="dark"] .form-select {
-            background-color: var(--secondary-color);
-            border-color: var(--border-color);
-            color: var(--text-color);
+        [data-theme="dark"] .form-select,
+        [data-theme="dark"] #currencySelect {
+            background-color: var(--secondary-color) !important;
+            border-color: var(--border-color) !important;
+            color: var(--text-color) !important;
         }
-        
+
         [data-theme="dark"] .form-control:focus,
-        [data-theme="dark"] .form-select:focus {
-            background-color: var(--secondary-color);
-            border-color: var(--primary-color);
-            color: var(--text-color);
+        [data-theme="dark"] .form-select:focus,
+        [data-theme="dark"] #currencySelect:focus {
+            background-color: var(--secondary-color) !important;
+            border-color: var(--primary-color) !important;
+            color: var(--text-color) !important;
         }
 
         .image-box {
@@ -258,12 +260,29 @@
             border: 1px solid var(--border-color) !important;
         }
     </style>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        function updateCurrencySelectDarkMode() {
+            var currencySelect = document.getElementById('currencySelect');
+            if (!currencySelect) return;
+            if (document.documentElement.getAttribute('data-theme') === 'dark') {
+                currencySelect.classList.add('bg-dark', 'text-light');
+            } else {
+                currencySelect.classList.remove('bg-dark', 'text-light');
+            }
+        }
+        updateCurrencySelectDarkMode();
+        // Listen for theme changes
+        const observer = new MutationObserver(updateCurrencySelectDarkMode);
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    });
+    </script>
 </head>
 <body>
     {% include 'navbar.html' %}
 
     <!-- Currency Selector - Improved Top Bar -->
-    <div class="container-fluid py-2 border-bottom" style="background: var(--card-bg); position: sticky; top: 0; z-index: 1030; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+    <div class="container-fluid py-2 border-bottom currency-bar-bg" style="position: sticky; top: 0; z-index: 1030; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-md-6 col-12 mb-2 mb-md-0">
@@ -301,56 +320,131 @@
                         <option value="AUD" selected>AUD (A$)</option>
                         <option value="JPY">JPY (¥)</option>
                     </select>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+    function updateCurrencySelectDarkModeForce() {
+        var currencySelect = document.getElementById('currencySelect');
+        if (!currencySelect) return;
+        if (document.documentElement.getAttribute('data-theme') === 'dark') {
+            currencySelect.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--secondary-color').trim() || '#0a1929';
+            currencySelect.style.color = getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim() || '#e0e0e0';
+            currencySelect.style.borderColor = getComputedStyle(document.documentElement).getPropertyValue('--border-color').trim() || '#2d3748';
+        } else {
+            currencySelect.style.backgroundColor = '';
+            currencySelect.style.color = '';
+            currencySelect.style.borderColor = '';
+        }
+    }
+    updateCurrencySelectDarkModeForce();
+    const observer = new MutationObserver(updateCurrencySelectDarkModeForce);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    </script>
+                    </select>
                     <!-- Add filter controls here if needed -->
                 </div>
             </div>
             <div class="row">
                 <div class="col-12">
-                    <form method="get" action="{{ url_for('products') }}" class="row g-2 align-items-end" id="filter-form">
-                        <div class="col-12 col-md-2">
-                            <label for="min_price" class="form-label">Min Price</label>
-                            <input type="number" step="0.01" min="0" name="min_price" id="min_price" class="form-control form-control-sm" value="{{ min_price }}">
-                        </div>
-                        <div class="col-12 col-md-2">
-                            <label for="max_price" class="form-label">Max Price</label>
-                            <input type="number" step="0.01" min="0" name="max_price" id="max_price" class="form-control form-control-sm" value="{{ max_price }}">
-                        </div>
-                        <div class="col-12 col-md-2">
-                            <label for="min_rating" class="form-label">Min Rating</label>
-                            <select name="min_rating" id="min_rating" class="form-select form-select-sm">
-                                <option value="">Any</option>
-                                {% for r in range(1,6) %}
-                                    <option value="{{ r }}" {% if min_rating == r %}selected{% endif %}>{{ r }}+</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-12 col-md-2">
-                            <label for="availability" class="form-label">Availability</label>
-                            <select name="availability" id="availability" class="form-select form-select-sm">
-                                <option value="">All</option>
-                                <option value="in_stock" {% if availability == 'in_stock' %}selected{% endif %}>In Stock</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-md-2">
-                            <label for="per_page" class="form-label">Products per page</label>
-                            <select name="per_page" id="per_page" class="form-select form-select-sm" onchange="document.getElementById('filter-form').submit();">
-                                {% for n in [8, 12, 16, 20, 24, 32, 48] %}
-                                    <option value="{{ n }}" {% if per_page == n %}selected{% endif %}>{{ n }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-12 col-md-2">
-                            <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
-                        </div>
-                        <input type="hidden" name="search" value="{{ search }}">
-                        <input type="hidden" name="sort" value="{{ sort }}">
-                        <input type="hidden" name="category" value="{{ category }}">
-                        <input type="hidden" name="condition" value="{{ condition }}">
-                    </form>
+                    <!-- Filter Toggle Button (always visible on mobile) -->
+                    <div class="d-md-none mb-2">
+                        <button id="filterToggleBtn" class="btn btn-outline-secondary w-100 hide-filters-btn" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="true" aria-controls="filterCollapse">
+                            Hide Filters
+                        </button>
+                    </div>
+                    <div class="collapse show" id="filterCollapse">
+                        <form method="get" action="{{ url_for('products') }}" class="row g-2 align-items-end" id="filter-form">
+                            <div class="col-12 col-md-2">
+                                <label for="min_price" class="form-label">Min Price</label>
+                                <input type="number" step="0.01" min="0" name="min_price" id="min_price" class="form-control form-control-sm" value="{{ min_price }}">
+                            </div>
+                            <div class="col-12 col-md-2">
+                                <label for="max_price" class="form-label">Max Price</label>
+                                <input type="number" step="0.01" min="0" name="max_price" id="max_price" class="form-control form-control-sm" value="{{ max_price }}">
+                            </div>
+                            <div class="col-12 col-md-2">
+                                <label for="min_rating" class="form-label">Min Rating</label>
+                                <select name="min_rating" id="min_rating" class="form-select form-select-sm">
+                                    <option value="">Any</option>
+                                    {% for r in range(1,6) %}
+                                        <option value="{{ r }}" {% if min_rating == r %}selected{% endif %}>{{ r }}+</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-2">
+                                <label for="availability" class="form-label">Availability</label>
+                                <select name="availability" id="availability" class="form-select form-select-sm">
+                                    <option value="">All</option>
+                                    <option value="in_stock" {% if availability == 'in_stock' %}selected{% endif %}>In Stock</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-2">
+                                <label for="per_page" class="form-label">Products per page</label>
+                                <select name="per_page" id="per_page" class="form-select form-select-sm" onchange="document.getElementById('filter-form').submit();">
+                                    {% for n in [8, 12, 16, 20, 24, 32, 48] %}
+                                        <option value="{{ n }}" {% if per_page == n %}selected{% endif %}>{{ n }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-2">
+                                <label for="auction_only" class="form-label">Auction Only</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="auction_only" id="auction_only" value="1" {% if auction_only %}checked{% endif %}>
+                                    <label class="form-check-label" for="auction_only">Show only auctions</label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-2">
+                                <div class="d-flex flex-column flex-md-row gap-2">
+                                    <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+                                </div>
+                            </div>
+                            <input type="hidden" name="search" value="{{ search }}">
+                            <input type="hidden" name="sort" value="{{ sort }}">
+                            <input type="hidden" name="category" value="{{ category }}">
+                            <input type="hidden" name="condition" value="{{ condition }}">
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+    <style>
+        .currency-bar-bg {
+            background: var(--card-bg) !important;
+            transition: background-color 0.3s ease;
+        }
+        [data-theme="dark"] .currency-bar-bg {
+            background: var(--card-bg) !important;
+        }
+    /* Custom dark mode for Hide Filters button */
+    .hide-filters-btn {
+        border-color: var(--accent-color);
+        color: var(--accent-color);
+        background: var(--card-bg);
+    }
+    body.dark-mode .hide-filters-btn {
+        border-color: #4fc3f7;
+        color: #4fc3f7;
+        background: #222e3c;
+    }
+    </style>
+    <script>
+    // Toggle button text based on collapse state
+    document.addEventListener('DOMContentLoaded', function() {
+        var filterCollapse = document.getElementById('filterCollapse');
+        var filterToggleBtn = document.getElementById('filterToggleBtn');
+        if (filterCollapse && filterToggleBtn) {
+            filterCollapse.addEventListener('show.bs.collapse', function () {
+                filterToggleBtn.textContent = 'Hide Filters';
+            });
+            filterCollapse.addEventListener('hide.bs.collapse', function () {
+                filterToggleBtn.textContent = 'Show Filters';
+            });
+        }
+    });
+    </script>
 
     <div class="container">
         <div class="row">
@@ -362,12 +456,7 @@
                         <a href="{{ url_for('products', category=cat, sort=sort, search=search) }}" class="list-group-item list-group-item-action {% if category == cat %}active{% endif %}">{{ cat }}</a>
                     {% endfor %}
                 </div>
-                <div class="list-group">
-                    <h6 class="list-group-item" style="background: var(--card-bg); color: var(--text-color); font-size: small; font-weight: bold;">AUCTIONS</h6>
-                    <a href="{{ url_for('auctions') }}" class="list-group-item list-group-item-action">Live Auctions</a>
-                    <a href="{{ url_for('auctions', ending='soon') }}" class="list-group-item list-group-item-action">Ending Soon</a>
-                    <a href="{{ url_for('auctions', boat='1') }}" class="list-group-item list-group-item-action">Boat Auctions</a>
-                </div>
+                <!-- Auction links removed as requested -->
                 <!-- Settings Currency Selector -->
                 <div class="mt-4 p-3 border rounded bg-white" style="background: var(--card-bg);">
                     <h6 class="fw-bold mb-2" style="color: var(--primary-color);">Settings</h6>
@@ -444,7 +533,7 @@
                                             {% endif %}
                                         </div>
                                         <div class="mt-auto d-flex justify-content-between align-items-center">
-                                            <span class="text-muted small">{{ p['created_at'].strftime('%Y-%m-%d') if p['created_at'] else '' }}</span>
+                                            <span class="text-muted small me-3">{{ p['created_at'].strftime('%Y-%m-%d') if p['created_at'] else '' }}</span>
                                             <div class="d-flex align-items-center">
                                                 {% if session.get('username') %}
                                                     <form action="{{ url_for('add_favorite', product_id=p['id']) }}" method="post" style="display:inline;" class="favorite-form" onclick="event.stopPropagation();">
