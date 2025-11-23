@@ -191,7 +191,7 @@
                                             Current bid: ${{ "%.2f"|format(product.current_bid or product.starting_bid) }}<br>
                                             Placed: {{ bid.created_at.strftime('%b %d, %I:%M %p') }}
                                         </div>
-                                        <a href="{{ url_for('product_detail', product_id=product.id) }}" class="view-link mt-2">View Auction</a>
+                                        <a href="{{ url_for('products', auction_only=1) }}" class="view-link mt-2">Browse Auctions</a>
                                     </div>
                                     {% if bid.is_winning %}
                                         <div class="bid-status status-winning">WINNING</div>
@@ -206,7 +206,7 @@
                                 <div class="no-bids">
                                     <h3>No Bids Yet</h3>
                                     <p>You haven't placed any bids yet.</p>
-                                    <a href="{{ url_for('auctions') }}" class="view-link">Browse Auctions</a>
+                                    <a href="{{ url_for('products', auction_only=1) }}" class="view-link">Browse Auctions</a>
                                 </div>
                             {% endif %}
                         </div>
